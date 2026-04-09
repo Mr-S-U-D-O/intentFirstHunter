@@ -1,0 +1,134 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: scrapers
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required, max 100 chars)
+    //   - subreddit: string (required, max 50 chars)
+    //   - keyword: string (required, max 100 chars)
+    //   - intervalMinutes: number (required, > 0)
+    //   - status: string (required, 'active' or 'paused')
+    //   - createdAt: timestamp (required, immutable)
+    //   - lastRunAt: timestamp (optional)
+    //   - userId: string (required, immutable, must match auth.uid)
+    //
+    // Collection: leads
+    // Document ID: auto-generated
+    // Fields:
+    //   - scraperId: string (required, max 50 chars)
+    //   - subreddit: string (required, max 50 chars)
+    //   - keyword: string (required, max 100 chars)
+    //   - postTitle: string (required, max 500 chars)
+    //   - postUrl: string (required, max 500 chars)
+    //   - postAuthor: string (required, max 100 chars)
+    //   - postContent: string (optional, max 10000 chars)
+    //   - createdAt: timestamp (required, immutable)
+    //   - userId: string (required, immutable, must match auth.uid)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+    
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+    
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !('field' in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidScraper() {
+      let allowedFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId'];
+      let requiredFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
+      
+      return hasOnlyAllowedFields(allowedFields) &&
+             hasRequiredFields(requiredFields) &&
+             validStringLength('name', 1, 100) &&
+             validStringLength('subreddit', 1, 50) &&
+             validStringLength('keyword', 1, 100) &&
+             request.resource.data.intervalMinutes is number &&
+             request.resource.data.intervalMinutes > 0 &&
+             request.resource.data.status in ['active', 'paused'] &&
+             request.resource.data.createdAt is timestamp &&
+             (!('lastRunAt' in request.resource.data) || request.resource.data.lastRunAt is timestamp) &&
+             request.resource.data.userId == request.auth.uid;
+    }
+
+    function isValidLead() {
+      let allowedFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'createdAt', 'userId'];
+      let requiredFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'createdAt', 'userId'];
+      
+      return hasOnlyAllowedFields(allowedFields) &&
+             hasRequiredFields(requiredFields) &&
+             validStringLength('scraperId', 1, 50) &&
+             validStringLength('subreddit', 1, 50) &&
+             validStringLength('keyword', 1, 100) &&
+             validStringLength('postTitle', 1, 500) &&
+             validStringLength('postUrl', 1, 500) &&
+             validStringLength('postAuthor', 1, 100) &&
+             (!('postContent' in request.resource.data) || validStringLength('postContent', 0, 10000)) &&
+             request.resource.data.createdAt is timestamp &&
+             request.resource.data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /scrapers/{scraperId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidScraper();
+      allow update: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid && 
+                    isValidScraper() &&
+                    request.resource.data.userId == resource.data.userId &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /leads/{leadId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidLead();
+      allow update: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid && 
+                    isValidLead() &&
+                    request.resource.data.userId == resource.data.userId &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

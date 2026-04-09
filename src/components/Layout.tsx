@@ -1,0 +1,84 @@
+import { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { Sidebar } from './Sidebar';
+import { AddScraperModal } from './AddScraperModal';
+import { ProfileModal } from './ProfileModal';
+import { SettingsModal } from './SettingsModal';
+import { useData } from './DataProvider';
+import { useAuth } from './AuthProvider';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from '@/components/ui/dropdown-menu';
+import { Search, Settings, User as UserIcon, LogOut } from 'lucide-react';
+
+export function Layout() {
+  const { scrapers } = useData();
+  const { user, logOut } = useAuth();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex h-screen bg-[#f8f9fa] font-sans text-slate-900 p-4 gap-6">
+      <Sidebar scrapers={scrapers} onAddScraper={() => setIsAddModalOpen(true)} />
+      
+      <main className="flex-1 flex flex-col overflow-hidden bg-transparent">
+        <header className="h-16 flex items-center justify-end px-2 shrink-0 mb-4">
+          <div className="flex items-center gap-6">
+            <div className="relative w-64">
+              <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Input 
+                placeholder="Search leads or scrapers..." 
+                className="pl-9 bg-white border-2 border-transparent focus-visible:border-[#5a8c12] shadow-sm rounded-xl h-10 focus-visible:ring-0 transition-colors"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger className="focus:outline-none">
+                <Avatar className="h-10 w-10 border-2 border-[#5a8c12] shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
+                  <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
+                  <AvatarFallback className="bg-[#5a8c12]/10 text-[#5a8c12] font-semibold">
+                    {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl border-2 border-[#5a8c12]">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user?.displayName || 'User'}</p>
+                      <p className="text-xs leading-none text-slate-500">{user?.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-slate-100" />
+                  <DropdownMenuItem onClick={() => setIsProfileOpen(true)} className="cursor-pointer gap-2 hover:bg-slate-50 focus:bg-slate-50">
+                    <UserIcon size={14} strokeWidth={1.5} /> Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="cursor-pointer gap-2 hover:bg-slate-50 focus:bg-slate-50">
+                    <Settings size={14} strokeWidth={1.5} /> Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-slate-100" />
+                  <DropdownMenuItem onClick={logOut} className="cursor-pointer gap-2 text-red-600 focus:text-red-600 hover:bg-red-50 focus:bg-red-50">
+                    <LogOut size={14} strokeWidth={1.5} /> Log out
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+        
+        <div className="flex-1 overflow-auto pb-4 px-2">
+          <Outlet />
+        </div>
+      </main>
+
+      <AddScraperModal open={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
+      <ProfileModal open={isProfileOpen} onOpenChange={setIsProfileOpen} />
+      <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+    </div>
+  );
+}
