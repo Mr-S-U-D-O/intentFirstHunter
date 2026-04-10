@@ -4,6 +4,7 @@ export interface Scraper {
   subreddit: string;
   keyword: string;
   intervalMinutes: number;
+  leadDefinition?: string;
   status: 'active' | 'paused';
   createdAt: any;
   lastRunAt?: any;

@@ -1,11 +1,12 @@
 import { Lead, Scraper } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDistanceToNow } from 'date-fns';
-import { ExternalLink, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ExternalLink, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, BrainCircuit } from 'lucide-react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type SortColumn = 'postTitle' | 'subreddit' | 'keyword' | 'score' | 'postAuthor' | 'createdAt';
 type SortDirection = 'asc' | 'desc';
@@ -91,7 +92,8 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
           />
         </div>
       </div>
-      <Table>
+      <div className="overflow-x-auto">
+        <Table>
       <TableHeader>
         <TableRow className="bg-slate-50/50 dark:bg-slate-800/50">
           <TableHead className="w-[200px] cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('postTitle')}>
@@ -139,13 +141,44 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
               </TableCell>
               <TableCell>
                 {lead.score !== undefined ? (
-                  <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${
-                    lead.score >= 8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                    lead.score >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                  }`} title={lead.reason}>
-                    {lead.score}/10
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger 
+                      render={
+                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold cursor-help transition-all hover:scale-105 ${
+                          lead.score >= 8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                          lead.score >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                          'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                        }`}>
+                          {lead.score}/10
+                        </span>
+                      }
+                    />
+                    <TooltipContent side="top" className="w-80 p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
+                      <div className="bg-white dark:bg-slate-900">
+                        <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-[#5a8c12]/10 text-[#5a8c12]">
+                            <BrainCircuit size={14} />
+                          </div>
+                          <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">AI Analysis</span>
+                          <div className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            lead.score >= 8 ? 'bg-green-100 text-green-700' :
+                            lead.score >= 6 ? 'bg-amber-100 text-amber-700' :
+                            'bg-slate-100 text-slate-600'
+                          }`}>
+                            {lead.score}/10 Match
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
+                            "{lead.reason}"
+                          </p>
+                        </div>
+                        <div className="px-4 py-2 bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center">
+                          <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">Scored by Gemini 1.5 Pro</span>
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 ) : (
                   <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
                 )}
@@ -177,6 +210,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
         })}
       </TableBody>
     </Table>
+    </div>
     </div>
   );
 }

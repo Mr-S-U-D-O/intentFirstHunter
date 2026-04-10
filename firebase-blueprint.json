@@ -21,6 +21,10 @@
           "type": "number",
           "description": "Interval in minutes to run the scraper"
         },
+        "leadDefinition": {
+          "type": "string",
+          "description": "Custom definition of what a perfect lead looks like for this scraper"
+        },
         "status": {
           "type": "string",
           "enum": ["active", "paused"],

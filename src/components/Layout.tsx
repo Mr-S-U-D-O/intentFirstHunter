@@ -9,7 +9,8 @@ import { useAuth } from './AuthProvider';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from '@/components/ui/dropdown-menu';
-import { Search, Settings, User as UserIcon, LogOut } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Search, Settings, User as UserIcon, LogOut, Menu, Database } from 'lucide-react';
 
 export function Layout() {
   const { scrapers } = useData();
@@ -18,20 +19,46 @@ export function Layout() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-screen bg-[#f8f9fa] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 p-4 gap-6 transition-colors">
-      <Sidebar scrapers={scrapers} onAddScraper={() => setIsAddModalOpen(true)} />
+    <div className="flex h-screen bg-[#f8f9fa] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 p-2 md:p-4 gap-4 md:gap-6 transition-colors">
+      <Sidebar scrapers={scrapers} onAddScraper={() => setIsAddModalOpen(true)} className="hidden lg:flex" />
       
       <main className="flex-1 flex flex-col overflow-hidden bg-transparent">
-        <header className="h-16 flex items-center justify-end px-2 shrink-0 mb-4">
-          <div className="flex items-center gap-6">
-            <div className="relative w-64">
+        <header className="h-16 flex items-center justify-between lg:justify-end px-2 shrink-0 mb-4">
+          <div className="flex lg:hidden items-center gap-3">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger className="p-2 rounded-xl bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <Menu size={20} />
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72 bg-transparent border-none shadow-none">
+                <Sidebar 
+                  scrapers={scrapers} 
+                  onAddScraper={() => {
+                    setIsAddModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }} 
+                  className="w-full rounded-none h-full border-r-2"
+                />
+              </SheetContent>
+            </Sheet>
+            
+            <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100 font-bold text-lg">
+              <div className="w-8 h-8 rounded-lg bg-[#5a8c12] text-white flex items-center justify-center shadow-md">
+                <Database size={16} strokeWidth={1.5} />
+              </div>
+              <span className="hidden sm:inline">IntentFirstHunter</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 md:gap-6">
+            <div className="relative w-40 sm:w-64">
               <Search size={16} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <Input 
-                placeholder="Search leads or scrapers..." 
+                placeholder="Search..." 
                 className="pl-9 bg-white dark:bg-slate-900 border-2 border-transparent focus-visible:border-[#5a8c12] shadow-sm rounded-xl h-10 focus-visible:ring-0 transition-colors dark:text-slate-100"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

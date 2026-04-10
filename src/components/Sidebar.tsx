@@ -1,16 +1,16 @@
 import { Scraper } from '../types';
 import * as Icons from 'lucide-react';
-import { Activity, PauseCircle, Database, Home, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Activity, PauseCircle, Database, Home, Plus, ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 
-export function Sidebar({ scrapers, onAddScraper }: { scrapers: Scraper[], onAddScraper: () => void }) {
+export function Sidebar({ scrapers, onAddScraper, className }: { scrapers: Scraper[], onAddScraper: () => void, className?: string }) {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <aside className="w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50 flex flex-col h-full shrink-0 overflow-hidden transition-colors">
+    <aside className={`w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50 flex flex-col h-full shrink-0 overflow-hidden transition-colors ${className}`}>
       <div className="h-20 flex items-center px-8 shrink-0">
         <div className="flex items-center gap-3 text-slate-800 dark:text-slate-100 font-bold text-lg">
           <div className="w-8 h-8 rounded-lg bg-[#5a8c12] text-white flex items-center justify-center shadow-md">
@@ -83,7 +83,12 @@ export function Sidebar({ scrapers, onAddScraper }: { scrapers: Scraper[], onAdd
                         <PauseCircle size={16} strokeWidth={1.5} />
                       )}
                     </div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{scraper.name}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{scraper.name}</span>
+                      {scraper.status === 'active' && (
+                        <SidebarCountdown scraper={scraper} />
+                      )}
+                    </div>
                   </div>
                 </NavLink>
               )})
@@ -92,5 +97,34 @@ export function Sidebar({ scrapers, onAddScraper }: { scrapers: Scraper[], onAdd
         </Collapsible>
       </div>
     </aside>
+  );
+}
+
+function SidebarCountdown({ scraper }: { scraper: Scraper }) {
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    const update = () => {
+      const lastRun = scraper.lastRunAt?.toMillis?.() || scraper.createdAt?.toMillis?.() || Date.now();
+      const nextRun = lastRun + (scraper.intervalMinutes * 60 * 1000);
+      const remaining = Math.max(0, Math.floor((nextRun - Date.now()) / 1000));
+      
+      if (remaining > 60) {
+        setTimeLeft(`${Math.floor(remaining / 60)}m`);
+      } else {
+        setTimeLeft(`${remaining}s`);
+      }
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [scraper]);
+
+  return (
+    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+      <Clock size={10} />
+      <span>Next run in {timeLeft}</span>
+    </div>
   );
 }

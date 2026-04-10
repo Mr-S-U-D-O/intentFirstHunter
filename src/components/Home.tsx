@@ -1,8 +1,24 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useData } from './DataProvider';
 import { LeadsTable } from './LeadsTable';
 import { Button } from '@/components/ui/button';
-import { Activity, Database, AlertCircle, TrendingUp, Star, MapPin, Zap, Clock, Target, Plus, Pause, Play } from 'lucide-react';
+import { 
+  Activity, 
+  Database, 
+  AlertCircle, 
+  TrendingUp, 
+  Star, 
+  MapPin, 
+  Zap, 
+  Clock, 
+  Target, 
+  Plus, 
+  Pause, 
+  Play,
+  RefreshCcw,
+  Trash2,
+  ChevronDown
+} from 'lucide-react';
 import { 
   XAxis, 
   YAxis, 
@@ -18,12 +34,77 @@ import {
   Pie,
   Legend
 } from 'recharts';
+
 import { format, subDays, startOfDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuGroup
+} from '@/components/ui/dropdown-menu';
+import { ConfirmModal } from './ConfirmModal';
+import { writeBatch, doc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export function Home() {
   const { scrapers, leads, logs } = useData();
   const navigate = useNavigate();
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetType, setResetType] = useState<'leads' | 'scrapers' | 'logs' | 'all' | null>(null);
+
+  const handleReset = async () => {
+    if (!resetType) return;
+
+    const batch = writeBatch(db);
+    
+    if (resetType === 'leads' || resetType === 'all') {
+      leads.forEach(lead => {
+        batch.delete(doc(db, 'leads', lead.id));
+      });
+    }
+    
+    if (resetType === 'scrapers' || resetType === 'all') {
+      scrapers.forEach(scraper => {
+        batch.delete(doc(db, 'scrapers', scraper.id));
+      });
+    }
+    
+    if (resetType === 'logs' || resetType === 'all') {
+      logs.forEach(log => {
+        batch.delete(doc(db, 'logs', log.id));
+      });
+    }
+
+    try {
+      await batch.commit();
+    } catch (error) {
+      console.error("Error resetting dashboard:", error);
+    }
+  };
+
+  const getResetTitle = () => {
+    switch(resetType) {
+      case 'leads': return "Reset All Leads";
+      case 'scrapers': return "Reset All Scrapers";
+      case 'logs': return "Reset All Logs";
+      case 'all': return "Reset Entire Dashboard";
+      default: return "Reset Confirmation";
+    }
+  };
+
+  const getResetDescription = () => {
+    switch(resetType) {
+      case 'leads': return "Are you sure you want to delete all leads? This action cannot be undone.";
+      case 'scrapers': return "Are you sure you want to delete all scrapers? This will also stop all background monitoring.";
+      case 'logs': return "Are you sure you want to clear all system logs?";
+      case 'all': return "This will delete ALL leads, scrapers, and logs. Your dashboard will be completely empty. Are you absolutely sure?";
+      default: return "";
+    }
+  };
 
   // Process analytics
   const stats = useMemo(() => {
@@ -118,11 +199,66 @@ export function Home() {
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 uppercase tracking-wider">Overview</span>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Intelligence Dashboard</h1>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">System Live</span>
+        <div className="flex items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
+              <RefreshCcw size={14} className="mr-2" />
+              Reset Dashboard
+              <ChevronDown size={14} className="ml-2 opacity-50" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2 py-1.5">Reset Options</DropdownMenuLabel>
+                <DropdownMenuItem 
+                  onClick={() => { setResetType('leads'); setResetModalOpen(true); }}
+                  className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3"
+                >
+                  <Database size={16} className="mr-3" />
+                  <span className="font-bold">Reset Leads</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => { setResetType('scrapers'); setResetModalOpen(true); }}
+                  className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3"
+                >
+                  <Zap size={16} className="mr-3" />
+                  <span className="font-bold">Reset Scrapers</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => { setResetType('logs'); setResetModalOpen(true); }}
+                  className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3"
+                >
+                  <Activity size={16} className="mr-3" />
+                  <span className="font-bold">Reset Logs</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator className="my-2 bg-slate-100 dark:bg-slate-800" />
+              <DropdownMenuGroup>
+                <DropdownMenuItem 
+                  onClick={() => { setResetType('all'); setResetModalOpen(true); }}
+                  className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 focus:bg-red-100 focus:text-red-700 cursor-pointer p-3"
+                >
+                  <Trash2 size={16} className="mr-3" />
+                  <span className="font-black">Reset All Data</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-tighter">System Live</span>
+          </div>
         </div>
       </div>
+
+      <ConfirmModal 
+        open={resetModalOpen}
+        onOpenChange={setResetModalOpen}
+        title={getResetTitle()}
+        description={getResetDescription()}
+        onConfirm={handleReset}
+        confirmText="Yes, Reset"
+      />
       
       {/* Primary KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

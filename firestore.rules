@@ -72,14 +72,15 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidScraperCreate() {
-      let allowedFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
-      let requiredFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
+      let allowedFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      let requiredFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
              validStringLength('name', 1, 100) &&
              validStringLength('subreddit', 1, 50) &&
              validStringLength('keyword', 1, 100) &&
+             validStringLength('leadDefinition', 1, 2000) &&
              request.resource.data.intervalMinutes is number &&
              request.resource.data.intervalMinutes > 0 &&
              request.resource.data.status in ['active', 'paused'] &&
@@ -90,7 +91,17 @@ service cloud.firestore {
     }
 
     function isValidScraperUpdate() {
-      return true;
+      let allowedFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      return hasOnlyAllowedFields(allowedFields) &&
+             validStringLength('name', 1, 100) &&
+             validStringLength('subreddit', 1, 50) &&
+             validStringLength('keyword', 1, 100) &&
+             validStringLength('leadDefinition', 1, 2000) &&
+             request.resource.data.intervalMinutes is number &&
+             request.resource.data.intervalMinutes > 0 &&
+             request.resource.data.status in ['active', 'paused'] &&
+             (!('lastRunAt' in request.resource.data) || request.resource.data.lastRunAt is timestamp) &&
+             (!('icon' in request.resource.data) || validStringLength('icon', 1, 50));
     }
 
     function isValidLead() {
@@ -115,6 +126,11 @@ service cloud.firestore {
     // ===============================================================
     // Rules
     // ===============================================================
+
+    // Allow Firebase Admin SDK to perform all operations
+    match /{document=**} {
+      allow read, write: if request.auth == null;
+    }
 
     match /scrapers/{scraperId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;

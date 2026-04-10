@@ -66,6 +66,7 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
   const [name, setName] = useState('');
   const [subreddit, setSubreddit] = useState('');
   const [keyword, setKeyword] = useState('');
+  const [leadDefinition, setLeadDefinition] = useState('');
   const [interval, setInterval] = useState('15');
   const [icon, setIcon] = useState('Activity');
   const [loading, setLoading] = useState(false);
@@ -89,6 +90,7 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
         name: name.trim(),
         subreddit: subreddit.replace(/^r\//, ''), // Remove r/ if user typed it
         keyword,
+        leadDefinition: leadDefinition.trim(),
         intervalMinutes: parseInt(interval, 10),
         status: 'active',
         icon,
@@ -119,6 +121,7 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
       setName('');
       setSubreddit('');
       setKeyword('');
+      setLeadDefinition('');
       setInterval('15');
       setIcon('Activity');
     } catch (error) {
@@ -130,7 +133,7 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-2xl border-2 border-[#5a8c12]">
+      <DialogContent className="sm:max-w-[425px] rounded-2xl border-2 border-[#5a8c12] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-slate-800">Add New Scraper</DialogTitle>
         </DialogHeader>
@@ -176,6 +179,18 @@ export function AddScraperModal({ open, onOpenChange }: { open: boolean, onOpenC
               required 
               className="rounded-xl border-slate-200 focus-visible:ring-[#5a8c12]"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="leadDefinition" className="text-slate-700 font-semibold">Lead Definition (AI Instructions)</Label>
+            <textarea 
+              id="leadDefinition" 
+              placeholder="Describe your perfect lead... e.g. Someone asking for a lightweight CRM because Salesforce is too expensive." 
+              value={leadDefinition} 
+              onChange={(e) => setLeadDefinition(e.target.value)} 
+              required 
+              className="w-full min-h-[80px] p-3 rounded-xl border-2 border-slate-200 focus:border-[#5a8c12] focus:ring-0 transition-colors text-sm dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100"
+            />
+            <p className="text-[10px] text-slate-500">The AI will use this description to score posts based on your specific needs.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="interval" className="text-slate-700 font-semibold">Run Interval</Label>
