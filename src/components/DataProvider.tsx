@@ -3,7 +3,6 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Scraper, Lead, SystemLog } from '../types';
 import { useAuth } from './AuthProvider';
-import { useScraperEngine } from '../hooks/useScraperEngine';
 
 interface DataContextType {
   scrapers: Scraper[];
@@ -71,9 +70,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       unsubscribeLogs();
     };
   }, [user]);
-
-  // Run the engine globally so it doesn't stop when navigating
-  useScraperEngine(scrapers);
 
   return (
     <DataContext.Provider value={{ scrapers, leads, logs }}>
