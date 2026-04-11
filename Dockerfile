@@ -1,33 +1,20 @@
-# Stage 1: Build the Vite frontend
-FROM node:18-alpine AS builder
+FROM node:20-slim
 
 WORKDIR /app
-COPY package.json ./
+
+# Install dependencies
+COPY package.json package-lock.json* ./
 RUN npm install
 
+# Copy all source files
 COPY . .
+
+# Build the frontend (Vite)
 RUN npm run build
 
-# Stage 2: Serve the app using the Express backend
-FROM node:18-alpine
-
-WORKDIR /app
-COPY package.json ./
-# Install only production dependencies
-# tsx is now in dependencies, so it will be installed
-RUN npm install --production
-
-# Copy the built frontend
-COPY --from=builder /app/dist ./dist
-
-# Copy the backend code and configs
-COPY server.ts ./
-COPY firebase-applet-config.json ./
-COPY firestore.rules ./
-COPY tsconfig.json ./
-
-# Expose the port (Cloud Run sets the PORT env variable)
+# The app listens on PORT (default 8080)
 EXPOSE 8080
 
-# The server listens on process.env.PORT, which Cloud Run provides
+# Use tsx to run the server.ts directly in production
+# This simplifies the build process for this project
 CMD ["npm", "run", "start"]

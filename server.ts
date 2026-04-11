@@ -117,7 +117,7 @@ const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-to-prevent-crash' });
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 8080;
 
   // API routes FIRST
   app.get("/api/health", (req, res) => {
@@ -316,7 +316,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server is listening on port ${PORT}`);
     
     // Deploy rules to named database on startup
     fetch(`http://localhost:${PORT}/api/admin/update-rules`, { method: 'POST' })
