@@ -2,6 +2,10 @@ export interface Scraper {
   id: string;
   name: string;
   subreddit: string;
+  platform?: string;
+  target?: string;
+  city?: string;
+  category?: string;
   keyword: string;
   intervalMinutes: number;
   leadDefinition?: string;
@@ -19,6 +23,10 @@ export interface Lead {
   id: string;
   scraperId: string;
   subreddit: string;
+  platform?: string;
+  target?: string;
+  city?: string;
+  category?: string;
   keyword: string;
   postTitle: string;
   postUrl: string;
@@ -28,6 +36,10 @@ export interface Lead {
   reason?: string;
   status?: 'new' | 'sent' | 'rejected';
   whatsappMessage?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  company?: string;
   createdAt: any;
   userId: string;
 }

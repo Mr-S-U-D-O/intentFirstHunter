@@ -23,12 +23,24 @@ service cloud.firestore {
     // Document ID: auto-generated
     // Fields:
     //   - scraperId: string (required, max 50 chars)
-    //   - subreddit: string (required, max 50 chars)
+    //   - platform: string (optional, 'reddit', 'hackernews', etc.)
+    //   - target: string (optional, max 100 chars)
+    //   - subreddit: string (optional, max 50 chars)
+    //   - city: string (optional, max 50 chars)
+    //   - category: string (optional, max 50 chars)
     //   - keyword: string (required, max 100 chars)
     //   - postTitle: string (required, max 500 chars)
     //   - postUrl: string (required, max 500 chars)
     //   - postAuthor: string (required, max 100 chars)
     //   - postContent: string (optional, max 10000 chars)
+    //   - score: number (optional, 1-10)
+    //   - reason: string (optional, max 2000 chars)
+    //   - status: string (optional, 'new', 'sent', 'rejected')
+    //   - whatsappMessage: string (optional, max 5000 chars)
+    //   - email: string (optional, max 200 chars)
+    //   - phone: string (optional, max 100 chars)
+    //   - location: string (optional, max 500 chars)
+    //   - company: string (optional, max 500 chars)
     //   - createdAt: timestamp (required, immutable)
     //   - userId: string (required, immutable, must match auth.uid)
     //
@@ -72,18 +84,22 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidScraperCreate() {
-      let allowedFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
-      let requiredFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
+      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      let requiredFields = ['name', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
              validStringLength('name', 1, 100) &&
-             validStringLength('subreddit', 1, 50) &&
-             validStringLength('keyword', 1, 100) &&
+             (!('subreddit' in request.resource.data) || validStringLength('subreddit', 1, 100)) &&
+             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'hackernews', 'stackoverflow', 'craigslist']) &&
+             (!('target' in request.resource.data) || validStringLength('target', 0, 200)) &&
+             (!('city' in request.resource.data) || validStringLength('city', 1, 100)) &&
+             (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&
+             validStringLength('keyword', 1, 500) &&
              (!('leadDefinition' in request.resource.data) || validStringLength('leadDefinition', 1, 2000)) &&
              (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 100)) &&
              (!('clientPhone' in request.resource.data) || validStringLength('clientPhone', 1, 50)) &&
-             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 1, 2000)) &&
+             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 1, 5000)) &&
              request.resource.data.intervalMinutes is number &&
              request.resource.data.intervalMinutes > 0 &&
              request.resource.data.status in ['active', 'paused'] &&
@@ -94,17 +110,21 @@ service cloud.firestore {
     }
 
     function isValidScraperUpdate() {
-      let allowedFields = ['name', 'subreddit', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
-      let requiredFields = ['name', 'subreddit', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
+      let allowedFields = ['name', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'leadDefinition', 'clientName', 'clientPhone', 'idealCustomerProfile', 'intervalMinutes', 'status', 'createdAt', 'lastRunAt', 'userId', 'icon'];
+      let requiredFields = ['name', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
              validStringLength('name', 1, 100) &&
-             validStringLength('subreddit', 1, 50) &&
-             validStringLength('keyword', 1, 100) &&
+             (!('subreddit' in request.resource.data) || validStringLength('subreddit', 1, 100)) &&
+             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'hackernews', 'stackoverflow', 'craigslist']) &&
+             (!('target' in request.resource.data) || validStringLength('target', 0, 200)) &&
+             (!('city' in request.resource.data) || validStringLength('city', 1, 100)) &&
+             (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&
+             validStringLength('keyword', 1, 500) &&
              (!('leadDefinition' in request.resource.data) || validStringLength('leadDefinition', 1, 2000)) &&
              (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 100)) &&
              (!('clientPhone' in request.resource.data) || validStringLength('clientPhone', 1, 50)) &&
-             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 1, 2000)) &&
+             (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 1, 5000)) &&
              request.resource.data.intervalMinutes is number &&
              request.resource.data.intervalMinutes > 0 &&
              request.resource.data.status in ['active', 'paused'] &&
@@ -113,13 +133,17 @@ service cloud.firestore {
     }
 
     function isValidLead() {
-      let allowedFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'status', 'whatsappMessage', 'createdAt', 'userId'];
-      let requiredFields = ['scraperId', 'subreddit', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'createdAt', 'userId'];
+      let allowedFields = ['scraperId', 'subreddit', 'platform', 'target', 'city', 'category', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'postContent', 'score', 'reason', 'status', 'whatsappMessage', 'email', 'phone', 'location', 'company', 'createdAt', 'userId'];
+      let requiredFields = ['scraperId', 'keyword', 'postTitle', 'postUrl', 'postAuthor', 'createdAt', 'userId'];
       
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
              validStringLength('scraperId', 1, 50) &&
-             validStringLength('subreddit', 1, 50) &&
+             (!('subreddit' in request.resource.data) || validStringLength('subreddit', 1, 50)) &&
+             (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'hackernews', 'stackoverflow', 'craigslist']) &&
+             (!('target' in request.resource.data) || validStringLength('target', 0, 100)) &&
+             (!('city' in request.resource.data) || validStringLength('city', 1, 50)) &&
+             (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&
              validStringLength('keyword', 1, 100) &&
              validStringLength('postTitle', 1, 500) &&
              validStringLength('postUrl', 1, 500) &&
@@ -129,6 +153,10 @@ service cloud.firestore {
              (!('reason' in request.resource.data) || validStringLength('reason', 0, 2000)) &&
              (!('status' in request.resource.data) || request.resource.data.status in ['new', 'sent', 'rejected']) &&
              (!('whatsappMessage' in request.resource.data) || validStringLength('whatsappMessage', 0, 5000)) &&
+             (!('email' in request.resource.data) || request.resource.data.email == null || validStringLength('email', 1, 200)) &&
+             (!('phone' in request.resource.data) || request.resource.data.phone == null || validStringLength('phone', 1, 100)) &&
+             (!('location' in request.resource.data) || request.resource.data.location == null || validStringLength('location', 1, 500)) &&
+             (!('company' in request.resource.data) || request.resource.data.company == null || validStringLength('company', 1, 500)) &&
              request.resource.data.createdAt is timestamp &&
              request.resource.data.userId == request.auth.uid;
     }

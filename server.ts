@@ -9,6 +9,17 @@ import { GoogleGenAI } from '@google/genai';
 import { initializeApp, getApps, getApp, applicationDefault, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getSecurityRules } from 'firebase-admin/security-rules';
+import Parser from 'rss-parser';
+
+const parser = new Parser({
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+  }
+});
 
 // Load config safely
 const firebaseConfig = JSON.parse(
@@ -113,6 +124,81 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  app.post("/api/suggest-keywords", express.json(), async (req, res) => {
+    try {
+      const { clientName, idealCustomerProfile } = req.body;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "Gemini API key not configured" });
+      }
+
+      const prompt = `You are an expert marketing strategist and lead generation specialist.
+      
+      CLIENT: ${clientName || 'A business'}
+      IDEAL CUSTOMER PROFILE: ${idealCustomerProfile || 'General commercial intent'}
+      
+      Based on this profile, suggest 15 high-intent keywords or short phrases that potential customers would use when looking for this business's services on platforms like Reddit, Craigslist, or Hacker News.
+      
+      Focus on "problem-aware" and "solution-aware" keywords (e.g., "need a plumber", "recommend a lawyer", "looking for web design").
+      
+      Return ONLY a valid JSON array of strings.
+      Format: ["keyword1", "keyword2", ...]`;
+
+      const aiResponse = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+
+      const responseText = aiResponse.text || '[]';
+      const cleanedText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const keywords = JSON.parse(cleanedText);
+
+      res.json({ keywords });
+    } catch (error: any) {
+      console.error("[API] Keyword suggestion failed:", error);
+      res.status(500).json({ error: error.message || "Failed to suggest keywords" });
+    }
+  });
+
+  app.post("/api/suggest-targets", express.json(), async (req, res) => {
+    try {
+      const { clientName, idealCustomerProfile, platforms } = req.body;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "Gemini API key not configured" });
+      }
+
+      const prompt = `You are an expert marketing strategist.
+      
+      CLIENT: ${clientName || 'A business'}
+      IDEAL CUSTOMER PROFILE: ${idealCustomerProfile || 'General commercial intent'}
+      PLATFORMS: ${platforms?.join(', ') || 'Reddit'}
+      
+      Based on this profile, suggest 10-15 specific "Targets" where these ideal customers are likely to hang out or post.
+      
+      - For Reddit: Suggest specific subreddits (e.g., "Entrepreneur", "reactjs", "smallbusiness").
+      - For Stack Overflow: Suggest specific tags (e.g., "javascript", "python", "css").
+      - For Craigslist/Hacker News: Suggest general search terms or categories.
+      
+      Return ONLY a valid JSON array of strings.
+      Format: ["target1", "target2", ...]`;
+
+      const aiResponse = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+
+      const responseText = aiResponse.text || '[]';
+      const cleanedText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const targets = JSON.parse(cleanedText);
+
+      res.json({ targets });
+    } catch (error: any) {
+      console.error("[API] Target suggestion failed:", error);
+      res.status(500).json({ error: error.message || "Failed to suggest targets" });
+    }
+  });
+
   app.get("/api/reddit/:subreddit", async (req, res) => {
     try {
       const { subreddit } = req.params;
@@ -202,13 +288,15 @@ async function startServer() {
       
       const scraper = { id: scraperDoc.id, ...scraperDoc.data() };
       
-      // Execute scraper
-      await executeScraper(scraper);
+      // Execute scraper in background to avoid timeout
+      executeScraper(scraper).catch(err => {
+        console.error(`[API] Background execution failed for scraper ${id}:`, err);
+      });
       
-      return res.json({ success: true });
+      return res.json({ success: true, message: "Scraper run started in background" });
     } catch (error) {
-      console.error("Error running scraper via API:", error);
-      res.status(500).json({ error: "Failed to run scraper" });
+      console.error("Error starting scraper via API:", error);
+      res.status(500).json({ error: "Failed to start scraper" });
     }
   });
 
@@ -259,6 +347,8 @@ async function runBackgroundScrapers() {
         console.log(`[Background Engine] Running scraper: ${scraper.name} (r/${scraper.subreddit})`);
         try {
           await executeScraper(scraper);
+          // Add a 5-second delay between scrapers to avoid rate limits across different platforms
+          await new Promise(resolve => setTimeout(resolve, 5000));
         } catch (err) {
           console.error(`[Background Engine] Error executing scraper ${scraper.id}:`, err);
         }
@@ -271,71 +361,262 @@ async function runBackgroundScrapers() {
 
 // Helper function to fetch Reddit posts directly (avoids self-HTTP calls)
 async function fetchRedditPosts(subreddit: string, limit: number = 25) {
-  // Use RSS feed via rss2json to bypass Reddit's strict IP blocking
-  const rssUrl = encodeURIComponent(`https://www.reddit.com/r/${subreddit.trim()}/new.rss`);
+  const rssUrl = `https://www.reddit.com/r/${subreddit.trim()}/new.rss`;
+  const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
   
-  const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`);
-  
-  const text = await response.text();
-  
-  if (!response.ok) {
-    throw new Error(`RSS API failed: ${response.status} - ${text.substring(0, 500)}`);
-  }
-  
-  let data;
   try {
-    data = JSON.parse(text);
-  } catch (e: any) {
-    throw new Error(`RSS API returned invalid JSON (Status: ${response.status}): ${text.substring(0, 200)}...`);
-  }
-  
-  if (data.status !== 'ok') {
-    throw new Error(`RSS2JSON returned non-ok status: ${data.message || "Unknown RSS error"}`);
-  }
-
-  const items = data.items || [];
-  
-  // Map the RSS output to match the expected data structure
-  const mappedPosts = items.map((item: any, index: number) => {
-    let permalink = item.link || '';
-    try {
-      permalink = new URL(item.link).pathname;
-    } catch (e) {
-      permalink = permalink.replace('https://www.reddit.com', '');
+    console.log(`[Reddit RSS Fetch] Fetching via rss2json for r/${subreddit}`);
+    const response = await fetch(rss2jsonUrl);
+    
+    if (!response.ok) {
+      throw new Error(`RSS Service Error: ${response.status}`);
     }
     
-    const rawContent = item.content || item.description || '';
+    const data = await response.json();
     
-    return {
-      data: {
-        index,
-        title: item.title || '',
-        selftext: rawContent.replace(/<[^>]*>?/gm, ''), // strip HTML tags
-        author: (item.author || '').replace('/u/', ''),
-        permalink: permalink,
-        pubDate: item.pubDate
+    if (data.status !== 'ok') {
+      throw new Error(data.message || "Unknown RSS error");
+    }
+    
+    const items = data.items || [];
+    
+    const mappedPosts = items.map((item: any, index: number) => {
+      let permalink = item.link || '';
+      try {
+        permalink = new URL(item.link).pathname;
+      } catch (e) {
+        permalink = permalink.replace('https://www.reddit.com', '');
       }
-    };
-  });
+      
+      const rawContent = item.content || item.description || '';
+      
+      return {
+        data: {
+          index,
+          title: item.title || '',
+          selftext: rawContent.replace(/<[^>]*>?/gm, ''), // strip HTML tags
+          author: (item.author || '').replace('/u/', ''),
+          permalink: permalink,
+          pubDate: item.pubDate
+        }
+      };
+    });
+    
+    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
+    const recentPosts = mappedPosts.filter((post: any) => {
+      const postDate = new Date(post.data.pubDate).getTime();
+      return postDate > fortyEightHoursAgo;
+    });
   
-  // Only process posts from the last 48 hours to ensure they are "recent"
-  const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
-  const recentPosts = mappedPosts.filter((post: any) => {
-    const postDate = new Date(post.data.pubDate).getTime();
-    return postDate > fortyEightHoursAgo;
-  });
+    return recentPosts.slice(0, limit);
+  } catch (error) {
+    console.error(`[Reddit RSS Fetch] Failed:`, error);
+    throw new Error(`Failed to fetch Reddit posts: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
-  // Limit to the requested number
-  return recentPosts.slice(0, limit);
+// Helper function to fetch Stack Overflow posts
+async function fetchStackOverflowPosts(tag: string, limit: number = 25) {
+  const rssUrl = `https://stackoverflow.com/feeds/tag?tagnames=${encodeURIComponent(tag.trim())}&sort=newest`;
+  const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+  
+  try {
+    console.log(`[Stack Overflow Fetch] Fetching via rss2json for tag: ${tag}`);
+    const response = await fetch(rss2jsonUrl);
+    
+    if (!response.ok) {
+      throw new Error(`RSS Service Error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.status !== 'ok') {
+      throw new Error(data.message || "Unknown RSS error");
+    }
+    
+    const items = data.items || [];
+    const mappedPosts = items.map((item: any, index: number) => {
+      let permalink = item.link || '';
+      try { 
+        const url = new URL(item.link);
+        permalink = url.pathname + url.search; 
+      } catch (e) { 
+        permalink = permalink.replace('https://stackoverflow.com', ''); 
+      }
+      const rawContent = item.content || item.description || '';
+      return {
+        data: {
+          index,
+          title: item.title || '',
+          selftext: rawContent.replace(/<[^>]*>?/gm, ''),
+          author: item.author || 'unknown',
+          permalink: permalink,
+          pubDate: item.pubDate
+        }
+      };
+    });
+    
+    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
+    const recentPosts = mappedPosts.filter((post: any) => new Date(post.data.pubDate).getTime() > fortyEightHoursAgo);
+    return recentPosts.slice(0, limit);
+  } catch (error) {
+    console.error(`[Stack Overflow Fetch] Primary failed, trying direct:`, error);
+    try {
+      const response = await fetch(rssUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'application/atom+xml, application/xml, text/xml'
+        }
+      });
+      if (response.ok) {
+        const xml = await response.text();
+        const feed = await parser.parseString(xml);
+        const items = feed.items || [];
+        return items.map((item: any, index: number) => ({
+          data: {
+            index,
+            title: item.title || '',
+            selftext: (item.content || item.description || '').replace(/<[^>]*>?/gm, ''),
+            author: item.author || 'unknown',
+            permalink: item.link?.replace('https://stackoverflow.com', '') || '',
+            pubDate: item.pubDate || item.isoDate
+          }
+        })).slice(0, limit);
+      }
+    } catch (directError) {
+      console.error(`[Stack Overflow Fetch] Direct also failed:`, directError);
+    }
+    throw new Error(`Failed to fetch Stack Overflow RSS: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Helper function to fetch Hacker News posts
+async function fetchHackerNewsPosts(category: string = 'newest', limit: number = 25) {
+  // Map categories to hnrss.org endpoints
+  const categoryMap: Record<string, string> = {
+    'newest': 'newest',
+    'frontpage': 'frontpage',
+    'ask': 'ask',
+    'show': 'show',
+    'jobs': 'jobs'
+  };
+  
+  const endpoint = categoryMap[category] || 'newest';
+  const rssUrl = `https://hnrss.org/${endpoint}`;
+  
+  try {
+    const feed = await parser.parseURL(rssUrl);
+    const items = feed.items || [];
+    const mappedPosts = items.map((item: any, index: number) => {
+      let permalink = item.link || '';
+      try { permalink = new URL(item.link).pathname + new URL(item.link).search; } catch (e) { permalink = permalink.replace('https://news.ycombinator.com', ''); }
+      const rawContent = item.content || item.description || '';
+      
+      // hnrss.org usually puts the author in the 'creator' or 'author' field
+      // or sometimes it's in the description like "by user"
+      let author = item.creator || item.author || 'unknown';
+      if (author === 'unknown' && item.contentSnippet) {
+        const match = item.contentSnippet.match(/by\s+([^\s|]+)/i);
+        if (match) author = match[1];
+      }
+
+      return {
+        data: {
+          index,
+          title: item.title || '',
+          selftext: rawContent.replace(/<[^>]*>?/gm, ''),
+          author: author,
+          permalink: permalink,
+          pubDate: item.pubDate || item.isoDate
+        }
+      };
+    });
+    
+    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
+    const recentPosts = mappedPosts.filter((post: any) => new Date(post.data.pubDate).getTime() > fortyEightHoursAgo);
+    return recentPosts.slice(0, limit);
+  } catch (error) {
+    console.error(`[RSS Parser] Hacker News failed:`, error);
+    throw new Error(`Failed to fetch Hacker News RSS: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Helper function to fetch Craigslist posts
+async function fetchCraigslistPosts(city: string, category: string, query: string, limit: number = 25) {
+  const rssUrl = `https://${city.trim()}.craigslist.org/search/${category.trim()}?format=rss&query=${encodeURIComponent(query)}`;
+  const rss2jsonUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+  
+  try {
+    console.log(`[Craigslist RSS Fetch] Fetching via rss2json for ${city}/${category}`);
+    const response = await fetch(rss2jsonUrl);
+    
+    if (!response.ok) {
+      throw new Error(`RSS Service Error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.status !== 'ok') {
+      throw new Error(data.message || "Unknown RSS error");
+    }
+    
+    const items = data.items || [];
+    const mappedPosts = items.map((item: any, index: number) => {
+      return {
+        data: {
+          index,
+          title: item.title || '',
+          selftext: (item.content || item.description || '').replace(/<[^>]*>?/gm, ''),
+          author: item.author || 'craigslist-user',
+          permalink: item.link || '', 
+          pubDate: item.pubDate
+        }
+      };
+    });
+    
+    const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000);
+    const recentPosts = mappedPosts.filter((post: any) => new Date(post.data.pubDate).getTime() > fortyEightHoursAgo);
+    return recentPosts.slice(0, limit);
+  } catch (error) {
+    console.error(`[Craigslist RSS Fetch] Primary failed, trying direct:`, error);
+    try {
+      const feed = await parser.parseURL(rssUrl);
+      const items = feed.items || [];
+      return items.map((item: any, index: number) => ({
+        data: {
+          index,
+          title: item.title || '',
+          selftext: (item.content || item.description || '').replace(/<[^>]*>?/gm, ''),
+          author: item.author || 'craigslist-user',
+          permalink: item.link || '', 
+          pubDate: item.pubDate || item.isoDate
+        }
+      })).slice(0, limit);
+    } catch (directError) {
+      console.error(`[Craigslist RSS Fetch] Direct also failed:`, directError);
+    }
+    throw new Error(`Failed to fetch Craigslist RSS: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 async function executeScraper(scraper: any) {
   try {
-    const rawPosts = await fetchRedditPosts(scraper.subreddit, 50); // Fetch up to 50 posts
+    let rawPosts = [];
+    if (scraper.platform === 'stackoverflow') {
+      rawPosts = await fetchStackOverflowPosts(scraper.target || scraper.subreddit, 50);
+    } else if (scraper.platform === 'hackernews') {
+      rawPosts = await fetchHackerNewsPosts(scraper.category || 'newest', 50);
+    } else if (scraper.platform === 'craigslist') {
+      rawPosts = await fetchCraigslistPosts(scraper.city, scraper.category, scraper.keyword, 50);
+    } else {
+      // Add a small random delay before Reddit fetch to avoid being flagged as a bot
+      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+      rawPosts = await fetchRedditPosts(scraper.target || scraper.subreddit, 50);
+    }
     
     if (!rawPosts || rawPosts.length === 0) return;
 
-    const keywordLower = scraper.keyword.toLowerCase();
+    const keywords = (scraper.keyword || '').toLowerCase().split(',').map((k: string) => k.trim()).filter((k: string) => k !== '');
     
     // Pre-fetch existing leads for this scraper to avoid N+1 queries
     const leadsRef = adminDb.collection('leads');
@@ -349,7 +630,16 @@ async function executeScraper(scraper: any) {
 
     // Filter out posts we already have
     const newPosts = rawPosts.filter((post: any) => {
-      const postUrl = `https://www.reddit.com${post.data.permalink}`;
+      let postUrl = '';
+      if (scraper.platform === 'stackoverflow') {
+        postUrl = `https://stackoverflow.com${post.data.permalink}`;
+      } else if (scraper.platform === 'hackernews') {
+        postUrl = `https://news.ycombinator.com${post.data.permalink}`;
+      } else if (scraper.platform === 'craigslist') {
+        postUrl = post.data.permalink;
+      } else {
+        postUrl = `https://www.reddit.com${post.data.permalink}`;
+      }
       return !existingUrls.has(postUrl);
     });
 
@@ -378,20 +668,46 @@ async function executeScraper(scraper: any) {
       
       Evaluate EACH AND EVERY post based on this target definition. 
       
+      Look for these specific signals of a high-quality opportunity:
+      1. Explicit requests for recommendations or help.
+      2. Complaints about current solutions (pain points).
+      3. Questions about how to solve a specific problem that the client solves.
+      4. Users asking "What is the best [product/service] for...?"
+      
       CRITICAL: You MUST return a score for EVERY post in the input array. Do not skip any.
       
       Score the intent from 1 to 10:
-      - 1-3: No match to the target definition.
-      - 4-6: Partial match or vague interest.
-      - 7-10: Perfect match. The user is explicitly asking for exactly what is described in the target definition.
+      - 1-3: No match or very weak signal.
+      - 4-6: Potential interest, but vague or early stage.
+      - 7-10: High-intent lead. The user is actively seeking a solution right now.
       
-      If the score is >= 7, you MUST draft a short WhatsApp message to send to the client. 
-      Use this exact template:
-      "Hey ${scraper.clientName || 'there'}, I found a user by /u/[username] looking for [very brief summary of what they need]. They posted this recently. Here is the link: [URL]"
+      If the score is >= 7, you MUST draft a persuasive WhatsApp message to send to the client (the business owner). 
+      The goal is to sell this lead to them by highlighting why it's a perfect match for their business.
+      
+      Use this structure:
+      "Hey ${scraper.clientName || 'there'}, I found a high-intent lead for you! 
+      
+      [1-2 sentences explaining WHY this is a great match based on their Ideal Customer Profile]. 
+      
+      User: [username]
+      Link: [URL]"
+      
       (Note: Leave [URL] exactly as the literal string "[URL]", we will replace it in the code).
       
       Return ONLY a valid JSON array of objects. 
-      Format: [{ "index": number, "score": number, "reason": "string", "isLead": boolean, "whatsappMessage": "string" }]
+      Format: [{ 
+        "index": number, 
+        "score": number, 
+        "reason": "string", 
+        "isLead": boolean, 
+        "whatsappMessage": "string",
+        "enrichment": {
+          "email": "string or null",
+          "phone": "string or null",
+          "location": "string or null",
+          "company": "string or null"
+        }
+      }]
       
       Input Data:
       ${JSON.stringify(minimizedData)}`;
@@ -432,11 +748,26 @@ async function executeScraper(scraper: any) {
 
       const title = post.data.title || '';
       const selftext = post.data.selftext || '';
-      const hasKeyword = title.toLowerCase().includes(keywordLower) || selftext.toLowerCase().includes(keywordLower);
+      const titleLower = title.toLowerCase();
+      const selftextLower = selftext.toLowerCase();
+      
+      const hasKeyword = keywords.length === 0 || keywords.some((kw: string) => 
+        titleLower.includes(kw) || selftextLower.includes(kw)
+      );
+      
       const isAiLead = scoreObj.isLead === true || scoreObj.score >= 7;
 
       if (hasKeyword || isAiLead) {
-        const postUrl = `https://www.reddit.com${post.data.permalink}`;
+        let postUrl = '';
+        if (scraper.platform === 'stackoverflow') {
+          postUrl = `https://stackoverflow.com${post.data.permalink}`;
+        } else if (scraper.platform === 'hackernews') {
+          postUrl = `https://news.ycombinator.com${post.data.permalink}`;
+        } else if (scraper.platform === 'craigslist') {
+          postUrl = post.data.permalink; // Craigslist links are absolute
+        } else {
+          postUrl = `https://www.reddit.com${post.data.permalink}`;
+        }
         
         let finalWhatsappMessage = scoreObj.whatsappMessage || `Hey ${scraper.clientName || 'there'}, I found a user by /u/${post.data.author} looking for something related to your business. Here is the link: [URL]`;
         finalWhatsappMessage = finalWhatsappMessage.replace('[URL]', postUrl);
@@ -444,7 +775,11 @@ async function executeScraper(scraper: any) {
         const newLeadRef = adminDb.collection('leads').doc();
         batchWrite.set(newLeadRef, {
           scraperId: scraper.id,
-          subreddit: scraper.subreddit,
+          platform: scraper.platform || 'reddit',
+          target: scraper.target || scraper.subreddit || '',
+          city: scraper.city || '',
+          category: scraper.category || '',
+          subreddit: scraper.subreddit || '', // Keep for backward compatibility
           keyword: scraper.keyword,
           postTitle: title.substring(0, 500),
           postUrl: postUrl.substring(0, 500),
@@ -454,6 +789,10 @@ async function executeScraper(scraper: any) {
           reason: (scoreObj.reason || '').substring(0, 2000),
           status: 'new',
           whatsappMessage: finalWhatsappMessage.substring(0, 5000),
+          email: scoreObj.enrichment?.email || null,
+          phone: scoreObj.enrichment?.phone || null,
+          location: scoreObj.enrichment?.location || null,
+          company: scoreObj.enrichment?.company || null,
           createdAt: FieldValue.serverTimestamp(),
           userId: scraper.userId
         });

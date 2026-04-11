@@ -47,16 +47,32 @@
     },
     "Lead": {
       "title": "Lead",
-      "description": "A lead generated from a Reddit post",
+      "description": "A lead generated from a social media post",
       "type": "object",
       "properties": {
         "scraperId": {
           "type": "string",
           "description": "ID of the scraper that found this lead"
         },
+        "platform": {
+          "type": "string",
+          "description": "Platform where the lead was found (reddit, hackernews, etc.)"
+        },
+        "target": {
+          "type": "string",
+          "description": "Target source (subreddit, HN category, etc.)"
+        },
         "subreddit": {
           "type": "string",
-          "description": "Subreddit where the lead was found"
+          "description": "Subreddit where the lead was found (legacy field)"
+        },
+        "city": {
+          "type": "string",
+          "description": "City for Craigslist leads"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category for Craigslist or HN leads"
         },
         "keyword": {
           "type": "string",
@@ -64,19 +80,52 @@
         },
         "postTitle": {
           "type": "string",
-          "description": "Title of the Reddit post"
+          "description": "Title of the post"
         },
         "postUrl": {
           "type": "string",
-          "description": "URL of the Reddit post"
+          "description": "URL of the post"
         },
         "postAuthor": {
           "type": "string",
-          "description": "Author of the Reddit post"
+          "description": "Author of the post"
         },
         "postContent": {
           "type": "string",
-          "description": "Content of the Reddit post"
+          "description": "Content of the post"
+        },
+        "score": {
+          "type": "number",
+          "description": "AI generated score (1-10)"
+        },
+        "reason": {
+          "type": "string",
+          "description": "AI generated reason for the score"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["new", "sent", "rejected"],
+          "description": "Status of the lead"
+        },
+        "whatsappMessage": {
+          "type": "string",
+          "description": "Drafted WhatsApp message"
+        },
+        "email": {
+          "type": "string",
+          "description": "Extracted email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Extracted phone number"
+        },
+        "location": {
+          "type": "string",
+          "description": "Extracted location"
+        },
+        "company": {
+          "type": "string",
+          "description": "Extracted company name"
         },
         "createdAt": {
           "type": "timestamp",
@@ -87,7 +136,7 @@
           "description": "Owner of the lead"
         }
       },
-      "required": ["scraperId", "subreddit", "keyword", "postTitle", "postUrl", "postAuthor", "createdAt", "userId"]
+      "required": ["scraperId", "keyword", "postTitle", "postUrl", "postAuthor", "createdAt", "userId"]
     }
   },
   "firestore": {

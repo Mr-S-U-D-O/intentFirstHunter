@@ -1,7 +1,8 @@
 import { Lead, Scraper } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDistanceToNow } from 'date-fns';
-import { ExternalLink, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, BrainCircuit, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { ExternalLink, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown, BrainCircuit, CheckCircle2, XCircle, Clock, MessageCircle, Copy, Check } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useState, useMemo } from 'react';
@@ -15,6 +16,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
   const [searchQuery, setSearchQuery] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleDeleteLead = async (leadId: string) => {
     try {
@@ -100,7 +102,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
             <div className="flex items-center">Post Title <SortIcon column="postTitle" /></div>
           </TableHead>
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('subreddit')}>
-            <div className="flex items-center">Subreddit <SortIcon column="subreddit" /></div>
+            <div className="flex items-center">Target <SortIcon column="subreddit" /></div>
           </TableHead>
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('keyword')}>
             <div className="flex items-center">Keyword Matched <SortIcon column="keyword" /></div>
@@ -117,24 +119,48 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('status')}>
             <div className="flex items-center">Status <SortIcon column="status" /></div>
           </TableHead>
+          <TableHead>Enrichment</TableHead>
           <TableHead className="text-right">Action</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {filteredAndSortedLeads.map((lead) => {
-          const scraper = scrapers.find(s => s.id === lead.scraperId);
-          const timeAgo = lead.createdAt?.toMillis 
-            ? formatDistanceToNow(lead.createdAt.toMillis(), { addSuffix: true }) 
-            : 'Just now';
-
-          return (
-            <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+          {filteredAndSortedLeads.map((lead) => {
+            const scraper = scrapers.find(s => s.id === lead.scraperId);
+            const timeAgo = lead.createdAt?.toMillis 
+              ? formatDistanceToNow(lead.createdAt.toMillis(), { addSuffix: true }) 
+              : 'Just now';
+            
+            const clientPhone = scraper?.clientPhone || '';
+            const whatsappUrl = `https://web.whatsapp.com/send?phone=${clientPhone.replace(/[^0-9]/g, '')}&text=${encodeURIComponent(lead.whatsappMessage || '')}`;
+            
+            const handleCopyMessage = (text: string, id: string) => {
+              navigator.clipboard.writeText(text);
+              setCopiedId(id);
+              setTimeout(() => setCopiedId(null), 2000);
+            };
+            return (
+              <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
               <TableCell className="font-medium max-w-[200px] truncate dark:text-slate-200" title={lead.postTitle}>
                 {lead.postTitle}
               </TableCell>
               <TableCell>
-                <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#5a8c12]/10 text-[#446715] dark:text-[#5a8c12] text-xs font-medium">
-                  r/{lead.subreddit}
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#5a8c12]/10 text-[#446715] dark:text-[#5a8c12] text-xs font-medium">
+                  {(() => {
+                    const platform = lead.platform || 'reddit';
+                    if (platform === 'reddit') return <Icons.MessageSquare size={12} />;
+                    if (platform === 'hackernews') return <Icons.Hash size={12} />;
+                    if (platform === 'stackoverflow') return <Icons.Code size={12} />;
+                    if (platform === 'craigslist') return <Icons.MapPin size={12} />;
+                    return null;
+                  })()}
+                  {lead.platform === 'craigslist'
+                    ? `${lead.city} (${lead.category})`
+                    : lead.platform === 'hackernews'
+                      ? `HN: ${lead.category || 'newest'}`
+                      : (lead.platform === 'reddit' || !lead.platform) 
+                        ? `r/${lead.target || lead.subreddit}` 
+                        : (lead.target || lead.subreddit)
+                  }
                 </span>
               </TableCell>
               <TableCell>
@@ -186,7 +212,9 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
                   <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
                 )}
               </TableCell>
-              <TableCell className="text-slate-500 dark:text-slate-400 text-sm">u/{lead.postAuthor}</TableCell>
+              <TableCell className="text-slate-500 dark:text-slate-400 text-sm">
+                {(lead.platform === 'reddit' || !lead.platform) ? `u/${lead.postAuthor}` : lead.postAuthor}
+              </TableCell>
               <TableCell className="text-slate-500 dark:text-slate-400 text-sm">{timeAgo}</TableCell>
               <TableCell>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
@@ -200,8 +228,55 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
                   {(!lead.status || lead.status === 'new') ? 'New' : lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
                 </span>
               </TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1">
+                  {lead.email && (
+                    <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                      <Icons.Mail size={10} /> {lead.email}
+                    </div>
+                  )}
+                  {lead.phone && (
+                    <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                      <Icons.Phone size={10} /> {lead.phone}
+                    </div>
+                  )}
+                  {lead.location && (
+                    <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                      <Icons.MapPin size={10} /> {lead.location}
+                    </div>
+                  )}
+                  {lead.company && (
+                    <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                      <Icons.Briefcase size={10} /> {lead.company}
+                    </div>
+                  )}
+                  {!lead.email && !lead.phone && !lead.location && !lead.company && (
+                    <span className="text-[10px] text-slate-400 italic">No enrichment</span>
+                  )}
+                </div>
+              </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
+                  {clientPhone && lead.whatsappMessage && (
+                    <>
+                      <a 
+                        href={whatsappUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 transition-colors"
+                        title="Open in WhatsApp Web"
+                      >
+                        <MessageCircle size={16} strokeWidth={1.5} />
+                      </a>
+                      <button
+                        onClick={() => handleCopyMessage(lead.whatsappMessage || '', lead.id)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 transition-colors"
+                        title="Copy message to clipboard"
+                      >
+                        {copiedId === lead.id ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                      </button>
+                    </>
+                  )}
                   <a 
                     href={lead.postUrl} 
                     target="_blank" 

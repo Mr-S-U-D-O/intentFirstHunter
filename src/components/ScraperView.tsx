@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from './DataProvider';
 import { format } from 'date-fns';
-import { ExternalLink, Activity, PauseCircle, Trash2, RefreshCw, Database, Clock, PlayCircle, Search, BrainCircuit, MessageCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { ExternalLink, Activity, PauseCircle, Trash2, RefreshCw, Database, Clock, PlayCircle, Search, BrainCircuit, MessageCircle, CheckCircle2, XCircle, Copy, Check } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ export function ScraperView() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const scraper = scrapers.find(s => s.id === id);
   const scraperLeads = leads.filter(l => l.scraperId === id);
@@ -134,7 +136,8 @@ export function ScraperView() {
         throw new Error(errorData.error || `API returned ${response.status}`);
       }
       
-      console.log("Scraper run completed successfully");
+      console.log("Scraper run started successfully");
+      alert("Scraper run started in the background. New leads will appear shortly.");
     } catch (error) {
       console.error("Manual scan failed:", error);
       alert("Failed to run scraper. Please check the logs.");
@@ -146,13 +149,20 @@ export function ScraperView() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col mb-6">
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Pages / Scrapers / {scraper.name}</span>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">{scraper.name}</h1>
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${scraper.status === 'active' ? 'bg-[#5a8c12]/10 text-[#5a8c12]' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
-              {scraper.status === 'active' ? <Activity size={14} strokeWidth={1.5} /> : <PauseCircle size={14} strokeWidth={1.5} />}
-              {scraper.status.toUpperCase()}
+        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 truncate max-w-full">Pages / Scrapers / {scraper.name}</span>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex flex-col gap-2 min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight break-words leading-tight">
+              {scraper.name}
+            </h1>
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${scraper.status === 'active' ? 'bg-[#5a8c12]/10 text-[#5a8c12]' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+                {scraper.status === 'active' ? <Activity size={12} strokeWidth={2} /> : <PauseCircle size={12} strokeWidth={2} />}
+                {scraper.status}
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-widest">
+                {scraper.platform}
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -194,12 +204,37 @@ export function ScraperView() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Subreddit</p>
-          <p className="text-xl font-bold text-slate-800 dark:text-slate-100">r/{scraper.subreddit}</p>
+          <div className="flex items-center gap-2 mb-1">
+            {(() => {
+              const platform = scraper.platform || 'reddit';
+              if (platform === 'reddit') return <Icons.MessageSquare size={14} className="text-[#5a8c12]" />;
+              if (platform === 'hackernews') return <Icons.Hash size={14} className="text-[#5a8c12]" />;
+              if (platform === 'stackoverflow') return <Icons.Code size={14} className="text-[#5a8c12]" />;
+              if (platform === 'craigslist') return <Icons.MapPin size={14} className="text-[#5a8c12]" />;
+              return null;
+            })()}
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 capitalize">Target ({scraper.platform || 'reddit'})</p>
+          </div>
+          <p className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            {scraper.platform === 'craigslist' 
+              ? `${scraper.city} (${scraper.category})`
+              : scraper.platform === 'hackernews'
+                ? `HN: ${scraper.category || 'newest'}`
+                : (scraper.platform === 'reddit' || !scraper.platform) 
+                  ? `r/${scraper.target || scraper.subreddit}` 
+                  : scraper.target
+            }
+          </p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Target Keyword</p>
-          <p className="text-xl font-bold text-slate-800 dark:text-slate-100">"{scraper.keyword}"</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Target Keywords</p>
+          <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+            {(scraper.keyword || '').split(',').map((kw: string, i: number) => (
+              <span key={i} className="px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200">
+                {kw.trim()}
+              </span>
+            ))}
+          </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
           <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Total Leads Found</p>
@@ -230,9 +265,9 @@ export function ScraperView() {
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
-        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Lead Definition (AI Target)</p>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">Ideal Customer Profile (AI Instructions)</p>
         <p className="text-slate-700 dark:text-slate-300 italic text-sm leading-relaxed">
-          "{scraper.leadDefinition || 'No specific definition provided. Using general intent scoring.'}"
+          "{scraper.idealCustomerProfile || scraper.leadDefinition || 'No specific definition provided. Using general intent scoring.'}"
         </p>
       </div>
 
@@ -268,6 +303,7 @@ export function ScraperView() {
                   <TableHead className="w-[150px]">User</TableHead>
                   <TableHead>Post Title & Content</TableHead>
                   <TableHead className="w-[120px]">Status</TableHead>
+                  <TableHead>Enrichment</TableHead>
                   <TableHead className="text-right w-[120px]">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -275,8 +311,14 @@ export function ScraperView() {
                 {sortedLeads.map((lead) => {
                   const dateObj = lead.createdAt?.toMillis ? new Date(lead.createdAt.toMillis()) : new Date();
                   const clientPhone = scraper?.clientPhone || '';
-                  const whatsappUrl = `https://wa.me/${clientPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(lead.whatsappMessage || '')}`;
+                  // Use web.whatsapp.com for a more direct experience on desktop
+                  const whatsappUrl = `https://web.whatsapp.com/send?phone=${clientPhone.replace(/[^0-9]/g, '')}&text=${encodeURIComponent(lead.whatsappMessage || '')}`;
                   
+                  const handleCopyMessage = (text: string, id: string) => {
+                    navigator.clipboard.writeText(text);
+                    setCopiedId(id);
+                    setTimeout(() => setCopiedId(null), 2000);
+                  };
                   return (
                     <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
                       <TableCell className="font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
@@ -331,7 +373,7 @@ export function ScraperView() {
                       </TableCell>
                       <TableCell>
                         <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium whitespace-nowrap">
-                          u/{lead.postAuthor}
+                          {(scraper.platform === 'reddit' || !scraper.platform) ? `u/${lead.postAuthor}` : lead.postAuthor}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -373,18 +415,54 @@ export function ScraperView() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          {lead.email && (
+                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                              <Icons.Mail size={10} /> {lead.email}
+                            </div>
+                          )}
+                          {lead.phone && (
+                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                              <Icons.Phone size={10} /> {lead.phone}
+                            </div>
+                          )}
+                          {lead.location && (
+                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                              <Icons.MapPin size={10} /> {lead.location}
+                            </div>
+                          )}
+                          {lead.company && (
+                            <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-slate-400">
+                              <Icons.Briefcase size={10} /> {lead.company}
+                            </div>
+                          )}
+                          {!lead.email && !lead.phone && !lead.location && !lead.company && (
+                            <span className="text-[10px] text-slate-400 italic">No enrichment</span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {clientPhone && lead.whatsappMessage && (
-                            <a 
-                              href={whatsappUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 transition-colors"
-                              title="Send via WhatsApp"
-                            >
-                              <MessageCircle size={16} strokeWidth={1.5} />
-                            </a>
+                            <>
+                              <a 
+                                href={whatsappUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 transition-colors"
+                                title="Open in WhatsApp Web"
+                              >
+                                <MessageCircle size={16} strokeWidth={1.5} />
+                              </a>
+                              <button
+                                onClick={() => handleCopyMessage(lead.whatsappMessage || '', lead.id)}
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 transition-colors"
+                                title="Copy message to clipboard"
+                              >
+                                {copiedId === lead.id ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                              </button>
+                            </>
                           )}
                           <a 
                             href={lead.postUrl} 

@@ -17,7 +17,8 @@ import {
   Play,
   RefreshCcw,
   Trash2,
-  ChevronDown
+  ChevronDown,
+  Briefcase
 } from 'lucide-react';
 import { 
   XAxis, 
@@ -119,12 +120,38 @@ export function Home() {
     const scores = leads.map(l => l.score || 0).filter(s => s > 0);
     const avgScore = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '0.0';
 
-    const subreddits = leads.reduce((acc, lead) => {
-      acc[lead.subreddit] = (acc[lead.subreddit] || 0) + 1;
+    // Client Billing Stats
+    const clientStats = scrapers.reduce((acc, scraper) => {
+      const scraperLeads = leads.filter(l => l.scraperId === scraper.id);
+      const sentLeads = scraperLeads.filter(l => l.status === 'sent').length;
+      
+      if (!acc[scraper.clientName]) {
+        acc[scraper.clientName] = { found: 0, sent: 0, phone: scraper.clientPhone };
+      }
+      acc[scraper.clientName].found += scraperLeads.length;
+      acc[scraper.clientName].sent += sentLeads;
+      return acc;
+    }, {} as Record<string, { found: number, sent: number, phone: string }>);
+
+    const clientStatsArray = Object.entries(clientStats).map(([name, data]: [string, { found: number, sent: number, phone: string }]) => ({
+      name,
+      ...data,
+      conversion: data.found > 0 ? Math.round((data.sent / data.found) * 100) : 0
+    })).sort((a, b) => b.sent - a.sent);
+
+    const targets = leads.reduce((acc, lead) => {
+      let target = 'Unknown';
+      if (lead.platform === 'craigslist') {
+        target = `${lead.city} (${lead.category})`;
+      } else {
+        target = lead.target || lead.subreddit || 'Unknown';
+        if (lead.platform === 'reddit' || !lead.platform) target = `r/${target}`;
+      }
+      acc[target] = (acc[target] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     
-    const topSubreddit = Object.entries(subreddits).sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0]?.[0] || 'N/A';
+    const topTarget = Object.entries(targets).sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0]?.[0] || 'N/A';
 
     const keywords = leads.reduce((acc, lead) => {
       acc[lead.keyword] = (acc[lead.keyword] || 0) + 1;
@@ -136,8 +163,8 @@ export function Home() {
       .sort((a: { value: number }, b: { value: number }) => b.value - a.value)
       .slice(0, 5);
 
-    return { leadsToday, avgScore, topSubreddit, topKeywordsData };
-  }, [leads]);
+    return { leadsToday, avgScore, topTarget, topKeywordsData, clientStatsArray };
+  }, [leads, scrapers]);
 
   // Process chart data for multiple scrapers
   const chartData = useMemo(() => {
@@ -296,8 +323,8 @@ export function Home() {
             </div>
             <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">Top Source</span>
           </div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Best Subreddit</p>
-          <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter truncate">r/{stats.topSubreddit}</p>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Best Target</p>
+          <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter truncate" title={stats.topTarget}>{stats.topTarget}</p>
         </div>
 
         <div className="group bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 hover:border-[#5a8c12] transition-all">
@@ -340,7 +367,15 @@ export function Home() {
                   }}
                   itemStyle={{ color: '#fff' }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                <Legend 
+                  iconType="circle" 
+                  wrapperStyle={{ paddingTop: '20px' }} 
+                  formatter={(value) => (
+                    <span className="text-[10px] font-bold text-slate-500 truncate max-w-[100px] inline-block align-middle" title={value}>
+                      {value}
+                    </span>
+                  )}
+                />
                 {scrapers.map((scraper, index) => (
                   <Area 
                     key={scraper.id}
@@ -411,6 +446,59 @@ export function Home() {
 
       {/* Secondary Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Client Delivery Stats */}
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 lg:col-span-2">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">Client Delivery & Billing</h3>
+              <p className="text-sm text-slate-500">Track how many leads you've successfully delivered to each business</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {stats.clientStatsArray.map((client) => (
+              <div key={client.name} className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#5a8c12]/10 text-[#5a8c12] flex items-center justify-center">
+                      <Briefcase size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white">{client.name}</h4>
+                      <p className="text-[10px] text-slate-500 font-mono">{client.phone}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-[#5a8c12] tracking-tighter">{client.sent}</span>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Leads Sent</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    <span>Delivery Rate</span>
+                    <span>{client.conversion}%</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#5a8c12] transition-all duration-1000" 
+                      style={{ width: `${client.conversion}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 italic">
+                    {client.found} total opportunities identified for this client
+                  </p>
+                </div>
+              </div>
+            ))}
+            {stats.clientStatsArray.length === 0 && (
+              <div className="col-span-2 text-center py-12 text-slate-400 text-sm italic">
+                No client data available yet.
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Top Keywords Bar Chart */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight mb-2">Top Keywords</h3>
