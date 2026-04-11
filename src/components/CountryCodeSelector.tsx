@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const countryCodes = [
   { name: "Afghanistan", code: "+93", flag: "🇦🇫" },
@@ -213,7 +214,7 @@ export function CountryCodeSelector({ value, onChange }: CountryCodeSelectorProp
         <SelectValue placeholder="Code" />
       </SelectTrigger>
       <SelectContent className="rounded-2xl border-slate-100 dark:border-slate-800">
-        <div className="max-h-72 overflow-y-auto">
+        <ScrollArea className="h-72">
           {countryCodes.map((country) => (
             <SelectItem 
               key={`${country.name}-${country.code}`} 
@@ -227,7 +228,7 @@ export function CountryCodeSelector({ value, onChange }: CountryCodeSelectorProp
               </div>
             </SelectItem>
           ))}
-        </div>
+        </ScrollArea>
       </SelectContent>
     </Select>
   );
