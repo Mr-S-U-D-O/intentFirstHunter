@@ -29,13 +29,7 @@ export function ScraperView() {
   const scraperLeads = leads.filter(l => l.scraperId === id);
 
   // Search/Filter state
-  const [localLeads, setLocalLeads] = useState<any[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
-
-  // Sync leads when data provider updates
-  useEffect(() => {
-    setLocalLeads(scraperLeads);
-  }, [scraperLeads]);
 
   // Countdown logic
   useEffect(() => {
