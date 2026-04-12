@@ -357,23 +357,21 @@ export function Home() {
         <div className="flex items-center gap-3">
           {/* Reset dashboard dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "flex items-center gap-2 cursor-default select-none outline-none text-xs uppercase tracking-widest font-bold shadow-sm",
-                  )}
-                >
-                  <RefreshCcw size={14} className="mr-1" />
-                  Reset Dashboard
-                </button>
-              }
-            />
+            <div
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "flex items-center gap-2 cursor-pointer select-none outline-none text-xs uppercase tracking-widest font-bold shadow-sm",
+              )}
+            >
+              <DropdownMenuTrigger className="flex items-center gap-2 w-full outline-none">
+                <RefreshCcw size={14} className="mr-1" />
+                Reset Dashboard
+              </DropdownMenuTrigger>
+            </div>
 
             <DropdownMenuContent
               align="end"
-              className="w-52 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2 bg-white dark:bg-slate-900 shadow-xl"
+              className="w-52 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2 bg-white dark:bg-slate-900 shadow-xl z-50"
             >
               <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2 py-1.5">
                 Reset Options
