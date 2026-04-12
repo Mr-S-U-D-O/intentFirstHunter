@@ -277,28 +277,6 @@ async function startServer() {
     }
   });
 
-  app.post("/api/scrapers/:id/run", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const scraperDoc = await adminDb.collection('scrapers').doc(id).get();
-      
-      if (!scraperDoc.exists) {
-        return res.status(404).json({ error: "Scraper not found" });
-      }
-      
-      const scraper = { id: scraperDoc.id, ...scraperDoc.data() };
-      
-      // Execute scraper in background to avoid timeout
-      executeScraper(scraper).catch(err => {
-        console.error(`[API] Background execution failed for scraper ${id}:`, err);
-      });
-      
-      return res.json({ success: true, message: "Scraper run started in background" });
-    } catch (error) {
-      console.error("Error starting scraper via API:", error);
-      res.status(500).json({ error: "Failed to start scraper" });
-    }
-  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

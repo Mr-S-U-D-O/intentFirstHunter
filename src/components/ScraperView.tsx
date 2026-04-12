@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from './DataProvider';
 import { format } from 'date-fns';
-import { ExternalLink, Activity, PauseCircle, Trash2, RefreshCw, Database, Clock, PlayCircle, Search, BrainCircuit, MessageCircle, CheckCircle2, XCircle, Copy, Check } from 'lucide-react';
+import { ExternalLink, Activity, PauseCircle, Trash2, Database, Clock, PlayCircle, Search, BrainCircuit, MessageCircle, CheckCircle2, XCircle, Copy, Check } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ export function ScraperView() {
   const { scrapers, leads } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isRetrying, setIsRetrying] = useState(false);
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -59,16 +59,11 @@ export function ScraperView() {
       const lastRun = scraper.lastRunAt?.toMillis?.() || scraper.createdAt?.toMillis?.() || Date.now();
       const nextRun = lastRun + (scraper.intervalMinutes * 60 * 1000);
       const remaining = Math.max(0, Math.floor((nextRun - Date.now()) / 1000));
-      
       setCountdown(remaining);
-
-      if (remaining === 0 && !isRetrying) {
-        handleRetry();
-      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [scraper, isRetrying]);
+  }, [scraper]);
 
   const filteredLeads = useMemo(() => {
     if (!searchQuery.trim()) return scraperLeads;
@@ -143,26 +138,7 @@ export function ScraperView() {
     }
   };
 
-  const handleRetry = async () => {
-    if (!user) return;
-    setIsRetrying(true);
-    try {
-      const response = await fetch(`/api/scrapers/${scraper.id}/run`, {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `API returned ${response.status}`);
-      }
-      
-      console.log("Scraper run started successfully");
-    } catch (error) {
-      console.error("Manual scan failed:", error);
-    } finally {
-      setIsRetrying(false);
-    }
-  };
+
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -199,15 +175,7 @@ export function ScraperView() {
                 <><PlayCircle size={16} strokeWidth={1.5} /> Unpause</>
               )}
             </Button>
-            <Button 
-              onClick={handleRetry} 
-              disabled={isRetrying}
-              variant="outline" 
-              className="flex-1 sm:flex-none gap-2 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors rounded-xl"
-            >
-              <RefreshCw size={16} strokeWidth={1.5} className={isRetrying ? 'animate-spin' : ''} />
-              {isRetrying ? 'Running...' : 'Force Run'}
-            </Button>
+
             <Button 
               onClick={() => setIsDeleteModalOpen(true)} 
               variant="destructive" 
