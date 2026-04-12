@@ -349,6 +349,9 @@ async function startServer() {
       // Sort by createdAt desc
       leads.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+      // Filter out leads that the client has deleted (but keep them in DB for admin)
+      const activeLeads = leads.filter((l: any) => l.status !== 'deleted');
+
       // Aggregate counts
       const totalPushed = scrapersData.reduce((acc: number, s: any) => acc + (s.totalPushedLeads || 0), 0);
       const avgTrialLimit = primaryScraper.trialLimit || 10;
@@ -357,13 +360,39 @@ async function startServer() {
       res.json({
         clientName: primaryScraper.clientName || 'Client',
         scraperName: scrapersData.map((s: any) => s.name).join(', '),
-        totalLeads: leads.length,
+        totalLeads: activeLeads.length,
         trialLimit: avgTrialLimit,
         isPaid: isPaid,
-        leads,
+        leads: activeLeads,
       });
     } catch (error: any) {
       console.error("[Portal API] Error fetching portal:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/portal/:token/delete/:leadId - Client deletes a lead
+  app.post("/api/portal/:token/delete/:leadId", async (req, res) => {
+    try {
+      const { token, leadId } = req.params;
+
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .limit(1)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      await adminDb.collection('leads').doc(leadId).update({
+        status: 'deleted',
+        clientDeletedAt: new Date().toISOString()
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[Portal API] Error deleting lead:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

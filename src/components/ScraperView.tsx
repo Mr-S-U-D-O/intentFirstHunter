@@ -49,20 +49,24 @@ export function ScraperView() {
   }, [scraper]);
 
   const filteredLeads = useMemo(() => {
-    if (!searchQuery.trim()) return scraperLeads;
-    const query = searchQuery.toLowerCase();
-    return scraperLeads.filter(lead => 
-      lead.postTitle.toLowerCase().includes(query) ||
-      lead.subreddit.toLowerCase().includes(query) ||
-      lead.keyword.toLowerCase().includes(query)
-    );
+    let base = scraperLeads;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      base = base.filter(lead => 
+        lead.postTitle.toLowerCase().includes(query) ||
+        lead.subreddit?.toLowerCase().includes(query) ||
+        lead.keyword?.toLowerCase().includes(query)
+      );
+    }
+    return base.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return timeB - timeA;
+    });
   }, [scraperLeads, searchQuery]);
 
-  const sortedLeads = [...filteredLeads].sort((a, b) => {
-    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-    return timeB - timeA;
-  });
+  const inboxLeads = filteredLeads.filter(l => !l.pushedToPortal);
+  const sentLeads = filteredLeads.filter(l => l.pushedToPortal);
 
   if (!scraper) {
     return (
@@ -298,13 +302,18 @@ export function ScraperView() {
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50 overflow-hidden">
         <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Database size={20} strokeWidth={1.5} className="text-[#5a8c12]" />
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Generated Leads Database</h2>
+            <div className="w-10 h-10 rounded-xl bg-[#5a8c12]/10 border border-[#5a8c12]/20 flex items-center justify-center">
+              <Database size={18} strokeWidth={2} className="text-[#5a8c12]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Lead Inbox</h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Process new opportunities</p>
+            </div>
           </div>
           <div className="relative max-w-sm w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
-              placeholder="Search leads by title, subreddit, or keyword..." 
+              placeholder="Search leads..." 
               className="pl-9 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl h-10 focus-visible:ring-[#5a8c12] dark:text-slate-100"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -312,9 +321,13 @@ export function ScraperView() {
           </div>
         </div>
         
-        {scraperLeads.length === 0 ? (
+        {inboxLeads.length === 0 ? (
           <div className="p-12 text-center text-slate-500 dark:text-slate-400">
-            No leads generated yet for this scraper.
+             <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 size={24} className="text-[#5a8c12]" />
+             </div>
+             <p className="text-sm font-bold">Mailbox Empty!</p>
+             <p className="text-xs text-slate-400">No new leads to process for this scraper.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -323,28 +336,17 @@ export function ScraperView() {
                 <TableRow className="bg-slate-50/50 dark:bg-slate-800/50">
                   <TableHead className="w-[120px]">Date</TableHead>
                   <TableHead className="w-[80px]">Score</TableHead>
-                  <TableHead className="w-[150px]">User</TableHead>
                   <TableHead>Post Title & Content</TableHead>
                   <TableHead className="w-[120px]">Status</TableHead>
-                  <TableHead className="w-[100px]">🚀 Push</TableHead>
-                  <TableHead className="w-[100px]">👁️ Activity</TableHead>
+                  <TableHead className="w-[120px]">🚀 Push</TableHead>
                   <TableHead className="text-right w-[120px]">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedLeads.map((lead) => {
+                {inboxLeads.map((lead) => {
                   const dateObj = lead.createdAt?.toMillis ? new Date(lead.createdAt.toMillis()) : new Date();
-                  const clientPhone = scraper?.clientPhone || '';
-                  // Use web.whatsapp.com for a more direct experience on desktop
-                  const whatsappUrl = `https://web.whatsapp.com/send?phone=${clientPhone.replace(/[^0-9]/g, '')}&text=${encodeURIComponent(lead.whatsappMessage || '')}`;
-                  
-                  const handleCopyMessage = (text: string, id: string) => {
-                    navigator.clipboard.writeText(text);
-                    setCopiedId(id);
-                    setTimeout(() => setCopiedId(null), 2000);
-                  };
                   return (
-                    <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                    <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 group">
                       <TableCell className="whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-700 dark:text-slate-300">{format(dateObj, 'MMM dd')}</span>
@@ -352,72 +354,38 @@ export function ScraperView() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {lead.score !== undefined ? (
-                          <Tooltip>
-                            <TooltipTrigger 
-                              render={
-                                <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold cursor-help transition-all hover:scale-105 ${
-                                  lead.score >= 8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                  lead.score >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                                  'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                }`}>
-                                  {lead.score}/10
-                                </span>
-                              }
-                            />
-                            <TooltipContent side="top" className="w-80 p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
-                              <div className="bg-white dark:bg-slate-900">
-                                <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                                  <div className="p-1.5 rounded-lg bg-[#5a8c12]/10 text-[#5a8c12]">
-                                    <BrainCircuit size={14} />
-                                  </div>
-                                  <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">AI Analysis</span>
-                                  <div className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    lead.score >= 8 ? 'bg-green-100 text-green-700' :
-                                    lead.score >= 6 ? 'bg-amber-100 text-amber-700' :
-                                    'bg-slate-100 text-slate-600'
-                                  }`}>
-                                    {lead.score}/10 Match
-                                  </div>
-                                </div>
-                                <div className="p-4">
-                                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
-                                    "{lead.reason}"
-                                  </p>
-                                </div>
-                                <div className="px-4 py-2 bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center">
-                                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">Scored by Gemini 1.5 Pro</span>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500 text-xs">-</span>
-                        )}
+                        <Tooltip>
+                          <TooltipTrigger 
+                            render={
+                              <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold cursor-help ${
+                                lead.score >= 8 ? 'bg-green-100 text-green-700' :
+                                lead.score >= 6 ? 'bg-amber-100 text-amber-700' :
+                                'bg-slate-100 text-slate-700'
+                              }`}>
+                                {lead.score}/10
+                              </span>
+                            }
+                          />
+                          <TooltipContent side="top" className="w-80 p-4 rounded-2xl">
+                             <p className="text-xs italic text-slate-600">"{lead.reason}"</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium whitespace-nowrap">
-                          {(scraper.platform === 'reddit' || !scraper.platform) ? `u/${lead.postAuthor}` : lead.postAuthor}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1 min-w-[300px] max-w-[500px]">
+                        <div className="flex flex-col gap-1 min-w-[300px]">
                           <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={lead.postTitle}>
                             {lead.postTitle}
                           </span>
-                          {lead.postContent && (
-                            <span className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2" title={lead.postContent}>
-                              {lead.postContent}
-                            </span>
-                          )}
+                          <span className="text-xs text-slate-500 line-clamp-1">{lead.postContent}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
+                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger className="outline-none">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors ${
-                              lead.status === 'sent' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30' :
-                              lead.status === 'rejected' ? 'bg-slate-100 text-slate-500' :
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer ${
+                              lead.status === 'sent' ? 'bg-blue-100 text-blue-700' :
+                              lead.status === 'rejected' ? 'bg-red-50 text-red-500' :
+                              lead.status === 'viewed' ? 'bg-slate-100 text-[#5a8c12]' :
                               'bg-amber-100 text-amber-700'
                             }`}>
                               {lead.status || 'new'}
@@ -425,7 +393,7 @@ export function ScraperView() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-32 rounded-xl">
                             <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'new')} className="cursor-pointer font-bold text-xs uppercase">New</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'sent')} className="cursor-pointer font-bold text-xs uppercase">Sent</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'viewed')} className="cursor-pointer font-bold text-xs uppercase">Viewed</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleStatusChange(lead.id, 'rejected')} className="cursor-pointer font-bold text-xs uppercase">Rejected</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -434,45 +402,17 @@ export function ScraperView() {
                          <Button
                            size="sm"
                            onClick={() => handlePushToPortal(lead)}
-                           className={`h-8 rounded-lg gap-2 font-black text-[10px] uppercase tracking-widest ${
-                             lead.pushedToPortal 
-                               ? 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100' 
-                               : 'bg-[#5a8c12] hover:bg-[#4a730f] text-white'
-                           }`}
+                           className="h-8 rounded-lg bg-[#5a8c12] hover:bg-[#4a730f] text-white gap-2 font-black text-[10px] uppercase tracking-widest"
                          >
-                           {lead.pushedToPortal ? <Icons.CheckCheck size={12} /> : <Icons.Zap size={12} />}
-                           {lead.pushedToPortal ? 'Pushed' : 'Push'}
+                           <Icons.Zap size={12} /> Push
                          </Button>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className={`text-xs font-black ${lead.clientViewCount ? 'text-[#5a8c12]' : 'text-slate-300'}`}>
-                            {lead.clientViewCount || 0} CLICKS
-                          </span>
-                          {lead.clientFeedback && (
-                            <Tooltip>
-                              <TooltipTrigger render={<span className="text-[9px] text-amber-600 font-bold truncate max-w-[80px] cursor-help">💬 Feedback</span>} />
-                              <TooltipContent>{lead.clientFeedback}</TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          <a 
-                            href={lead.postUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-slate-100 dark:border-slate-800 hover:bg-[#5a8c12]/10 text-[#5a8c12] transition-colors"
-                            title="View Source"
-                          >
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <a href={lead.postUrl} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-[#5a8c12]">
                             <ExternalLink size={14} />
                           </a>
-                          <button
-                            onClick={() => handleDeleteLead(lead.id)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-slate-100 dark:border-slate-800 hover:bg-red-50 text-red-500 transition-colors"
-                            title="Delete"
-                          >
+                          <button onClick={() => handleDeleteLead(lead.id)} className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500">
                             <Trash2 size={14} />
                           </button>
                         </div>
@@ -485,6 +425,92 @@ export function ScraperView() {
           </div>
         )}
       </div>
+
+      {/* Leads Sent Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
+                <Icons.Send size={18} className="text-blue-500" />
+             </div>
+             <div>
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Leads Sent to Client</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Track client engagement & review feedback</p>
+             </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full">
+             {sentLeads.length} Total Sent
+          </div>
+        </div>
+
+        {sentLeads.length === 0 ? (
+          <div className="p-12 text-center text-slate-400 italic text-sm">
+             No leads have been pushed to the client yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/50 dark:bg-slate-800/50">
+                  <TableHead className="w-[120px]">Sent Date</TableHead>
+                  <TableHead>Opportunity</TableHead>
+                  <TableHead className="w-[120px] text-center">Engagement</TableHead>
+                  <TableHead className="w-[150px]">Current Status</TableHead>
+                  <TableHead>Client Feedback</TableHead>
+                  <TableHead className="text-right w-[80px]">Link</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sentLeads.map((lead) => {
+                  const dateObj = lead.createdAt?.toMillis ? new Date(lead.createdAt.toMillis()) : new Date();
+                  return (
+                    <TableRow key={lead.id} className="hover:bg-blue-50/30">
+                      <TableCell className="whitespace-nowrap">
+                         <div className="text-[11px] font-bold text-slate-500">{format(dateObj, 'MMM dd, HH:mm')}</div>
+                      </TableCell>
+                      <TableCell>
+                         <div className="text-sm font-bold text-slate-700 truncate max-w-[200px]" title={lead.postTitle}>
+                            {lead.postTitle}
+                         </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                         <div className={`text-xs font-black px-2 py-1 rounded-lg ${lead.clientViewCount ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-300'}`}>
+                            {lead.clientViewCount || 0} CLICKS
+                         </div>
+                      </TableCell>
+                      <TableCell>
+                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                           lead.status === 'deleted' ? 'bg-red-50 text-red-500 border-red-100' :
+                           lead.status === 'sent' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                           lead.status === 'viewed' ? 'bg-green-50 text-green-600 border-green-100' :
+                           'bg-slate-50 text-slate-400 border-slate-100'
+                         }`}>
+                           {lead.status === 'deleted' ? <Icons.Trash2 size={10}/> : null}
+                           {lead.status === 'sent' ? <Icons.Send size={10}/> : null}
+                           {lead.status}
+                         </span>
+                      </TableCell>
+                      <TableCell>
+                         {lead.clientFeedback ? (
+                           <div className="text-xs text-blue-600 italic bg-blue-50/50 p-2 rounded-lg border border-blue-100 max-w-[200px]">
+                              "{lead.clientFeedback}"
+                           </div>
+                         ) : (
+                           <span className="text-[10px] text-slate-300 italic">No feedback yet</span>
+                         )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                         <a href={lead.postUrl} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-blue-500">
+                            <ExternalLink size={14} />
+                         </a>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       <ConfirmModal 
         open={isDeleteModalOpen} 
         onOpenChange={setIsDeleteModalOpen} 
