@@ -13,13 +13,13 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isAuthorized } = useAuth();
   const [scrapers, setScrapers] = useState<Scraper[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [logs, setLogs] = useState<SystemLog[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isAuthorized) return;
 
     const scrapersQuery = query(collection(db, 'scrapers'), where('userId', '==', user.uid));
     const unsubscribeScrapers = onSnapshot(scrapersQuery, (snapshot) => {

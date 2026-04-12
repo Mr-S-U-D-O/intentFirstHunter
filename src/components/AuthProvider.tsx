@@ -1,12 +1,21 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+import { db, auth } from '../firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Target } from 'lucide-react';
 import { LoginScreen } from './LoginScreen';
+import { AccessDenied } from './AccessDenied';
+
+const ALLOWED_EMAILS = [
+  'launchpadstudioagency@gmail.com',
+  'molelekishoez@gmail.com',
+  'investors@intentfirsthunter.co.za'
+];
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAuthorized: boolean;
   signIn: () => Promise<void>;
   logOut: () => Promise<void>;
 }
@@ -16,11 +25,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  const logLoginAttempt = async (user: User | null) => {
+    if (!user) return;
+    try {
+      const isAuth = ALLOWED_EMAILS.includes(user.email || '');
+      await addDoc(collection(db, 'login_attempts'), {
+        email: user.email,
+        uid: user.uid,
+        displayName: user.displayName,
+        isAuthorized: isAuth,
+        timestamp: serverTimestamp(),
+        userAgent: navigator.userAgent
+      });
+    } catch (error) {
+      console.error('Error logging login attempt:', error);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const isAuth = user ? ALLOWED_EMAILS.includes(user.email || '') : false;
       setUser(user);
+      setIsAuthorized(isAuth);
       setLoading(false);
+      
+      if (user) {
+        logLoginAttempt(user);
+      }
     });
     return unsubscribe;
   }, []);
@@ -57,8 +90,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return <LoginScreen onSignIn={signIn} />;
   }
 
+  if (!isAuthorized) {
+    return <AccessDenied onSignOut={logOut} userEmail={user.email} />;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, logOut }}>
+    <AuthContext.Provider value={{ user, loading, isAuthorized, signIn, logOut }}>
       {children}
     </AuthContext.Provider>
   );
