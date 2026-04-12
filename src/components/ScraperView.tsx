@@ -157,8 +157,6 @@ export function ScraperView() {
     }
   };
 
-
-
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col mb-6">
@@ -511,6 +509,8 @@ export function ScraperView() {
             </Table>
           </div>
         )}
+      </div>
+
       <ConfirmModal 
         open={isDeleteModalOpen} 
         onOpenChange={setIsDeleteModalOpen} 
