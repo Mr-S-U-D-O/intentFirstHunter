@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from './DataProvider';
 import { LeadsTable } from './LeadsTable';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Activity,
   Database,
@@ -334,6 +334,13 @@ export function Home() {
     }
   };
 
+  const confirmReset = (type: 'leads' | 'scrapers' | 'logs' | 'all') => {
+    setResetType(type as any);
+    setTimeout(() => {
+      setResetModalOpen(true);
+    }, 0);
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-16">
 
@@ -348,10 +355,14 @@ export function Home() {
         <div className="flex items-center gap-3">
           {/* Reset dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm">
-              <RefreshCcw size={13} /> Reset <ChevronDown size={12} className="opacity-50" />
+            <DropdownMenuTrigger 
+              className={buttonVariants({ variant: "outline", size: "sm" }) + " flex items-center gap-2 cursor-default select-none outline-none text-xs uppercase tracking-widest font-bold shadow-sm"}
+            >
+              <RefreshCcw size={14} className="mr-1" /> 
+              Reset Dashboard
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2">
+            
+            <DropdownMenuContent align="end" className="w-52 rounded-2xl border-2 border-slate-100 dark:border-slate-800 p-2 bg-white dark:bg-slate-900 shadow-xl">
               <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2 py-1.5">
                 Reset Options
               </DropdownMenuLabel>
@@ -361,16 +372,16 @@ export function Home() {
                   { icon: Zap, label: 'Reset Scrapers', type: 'scrapers' },
                   { icon: Activity, label: 'Reset Logs', type: 'logs' },
                 ].map(({ icon: Icon, label, type }) => (
-                  <DropdownMenuItem key={type} onSelect={() => { setResetType(type as any); setTimeout(() => setResetModalOpen(true), 200); }}
-                    className="rounded-xl focus:bg-red-50 focus:text-red-600 cursor-pointer p-3">
-                    <Icon size={15} className="mr-3" /> <span className="font-bold">{label}</span>
+                  <DropdownMenuItem key={type} onClick={() => confirmReset(type as any)}
+                    className="rounded-xl focus:bg-red-50 focus:text-red-600 hover:bg-slate-50 cursor-pointer p-3 flex items-center outline-none">
+                    <Icon size={15} className="mr-3" /> <span className="font-bold text-sm text-slate-700">{label}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuGroup>
-              <DropdownMenuSeparator className="my-2" />
-              <DropdownMenuItem onSelect={() => { setResetType('all'); setTimeout(() => setResetModalOpen(true), 200); }}
-                className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 focus:bg-red-100 cursor-pointer p-3">
-                <Trash2 size={15} className="mr-3" /> <span className="font-black">Reset ALL Data</span>
+              <DropdownMenuSeparator className="my-2 border-t border-slate-100 dark:border-slate-800" />
+              <DropdownMenuItem onClick={() => confirmReset('all')}
+                className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 focus:bg-red-100 hover:bg-red-100 cursor-pointer p-3 flex items-center outline-none">
+                <Trash2 size={15} className="mr-3" /> <span className="font-black text-sm">Reset ALL Data</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
