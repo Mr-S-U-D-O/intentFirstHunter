@@ -170,9 +170,24 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidScraperCreate();
       allow update: if isAuthenticated() && 
                     resource.data.userId == request.auth.uid && 
-                    (isValidScraperUpdate() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastRunAt'])) &&
-                    request.resource.data.userId == resource.data.userId &&
-                    request.resource.data.createdAt == resource.data.createdAt;
+                    request.resource.data.userId == resource.data.userId && (
+                      // Full update (status, keyword, etc.)
+                      (
+                        isValidScraperUpdate() &&
+                        request.resource.data.createdAt == resource.data.createdAt
+                      ) ||
+                      // Lightweight bypass: background engine updates lastRunAt only
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastRunAt']) ||
+                      // Lightweight bypass: portal management (deploy/kill/extend)
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['portalToken']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['portalToken', 'trialLimit', 'isPaid']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['trialLimit']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isPaid']) ||
+                      // Lightweight bypass: engagement counters
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalPushedLeads']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalClientClicks']) ||
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalPushedLeads', 'totalClientClicks'])
+                    );
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
