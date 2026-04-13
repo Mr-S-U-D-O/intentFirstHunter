@@ -96,10 +96,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  return (
+    <AuthContext.Provider value={{ user, loading, isAuthorized, signIn, signInWithEmail, resetPassword, logOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function AuthGate({ children }: { children: React.ReactNode }) {
+  const { user, loading, isAuthorized, logOut } = useAuth();
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#5a8c12] to-[#304513] flex items-center justify-center shadow-lg shadow-[#5a8c12]/20 animate-pulse mb-4">
+        <div className="w-12 h-12 rounded-xl bg-[#5a8c12] flex items-center justify-center shadow-lg shadow-[#5a8c12]/20 animate-pulse mb-4">
           <Target className="text-white w-8 h-8" />
         </div>
         <div className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Loading IntentFirstHunter...</div>
@@ -115,11 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return <AccessDenied onSignOut={logOut} userEmail={user.email} />;
   }
 
-  return (
-    <AuthContext.Provider value={{ user, loading, isAuthorized, signIn, signInWithEmail, resetPassword, logOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <>{children}</>;
 }
 
 export function useAuth() {

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './components/AuthProvider';
+import { AuthProvider, AuthGate } from './components/AuthProvider';
 import { DataProvider } from './components/DataProvider';
 import { Layout } from './components/Layout';
 import { Home } from './components/Home';
@@ -19,8 +19,8 @@ export default function App() {
               {/* Client Portal - no auth, no layout */}
               <Route path="/portal/:token" element={<ClientPortal />} />
 
-              {/* Admin routes - authenticated with sidebar */}
-              <Route path="/" element={<Layout />}>
+              {/* Admin routes - protected by AuthGate */}
+              <Route path="/" element={<AuthGate><Layout /></AuthGate>}>
                 <Route index element={<Home />} />
                 <Route path="scraper/:id" element={<ScraperView />} />
                 <Route path="privacy" element={<PrivacyPolicy />} />
