@@ -290,13 +290,18 @@ export function AddScraperModal({
         body: JSON.stringify({ clientName, idealCustomerProfile })
       });
       
+      if (response.status === 429) throw new Error('QUOTA_EXCEEDED');
       if (!response.ok) throw new Error('Failed to fetch suggestions');
       
       const data = await response.json();
       setSuggestedKeywords(data.keywords || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Keyword suggestion failed:', err);
-      setError('Failed to suggest keywords. Please try again.');
+      if (err.message === 'QUOTA_EXCEEDED') {
+        setError('AI Quota Exceeded. Please increase your spending cap at AI Studio (ai.studio/spend) to continue using suggestions.');
+      } else {
+        setError('Failed to suggest keywords. Please try again.');
+      }
     } finally {
       setIsSuggesting(false);
     }
@@ -317,13 +322,18 @@ export function AddScraperModal({
         body: JSON.stringify({ clientName, idealCustomerProfile, platforms: selectedPlatforms })
       });
       
+      if (response.status === 429) throw new Error('QUOTA_EXCEEDED');
       if (!response.ok) throw new Error('Failed to fetch suggestions');
       
       const data = await response.json();
       setSuggestedTargets(data.targets || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Target suggestion failed:', err);
-      setError('Failed to suggest targets. Please try again.');
+      if (err.message === 'QUOTA_EXCEEDED') {
+        setError('AI Quota Exceeded. Please increase your spending cap at AI Studio (ai.studio/spend) to continue using suggestions.');
+      } else {
+        setError('Failed to suggest targets. Please try again.');
+      }
     } finally {
       setIsSuggestingTargets(false);
     }

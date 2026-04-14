@@ -167,7 +167,11 @@ async function startServer() {
       res.json({ keywords });
     } catch (error: any) {
       console.error("[API] Keyword suggestion failed:", error);
-      res.status(500).json({ error: error.message || "Failed to suggest keywords" });
+      const status = error.status || 500;
+      res.status(status).json({ 
+        error: error.message || "Failed to suggest keywords",
+        code: status === 429 ? 'QUOTA_EXCEEDED' : 'INTERNAL_ERROR'
+      });
     }
   });
 
@@ -211,7 +215,11 @@ async function startServer() {
       res.json({ targets });
     } catch (error: any) {
       console.error("[API] Target suggestion failed:", error);
-      res.status(500).json({ error: error.message || "Failed to suggest targets" });
+      const status = error.status || 500;
+      res.status(status).json({ 
+        error: error.message || "Failed to suggest targets",
+        code: status === 429 ? 'QUOTA_EXCEEDED' : 'INTERNAL_ERROR'
+      });
     }
   });
 
@@ -935,12 +943,17 @@ async function executeScraper(scraper: any) {
         const cleanedText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
         scoredBatch = JSON.parse(cleanedText);
       } catch (aiError: any) {
-        console.error(`[Background Engine] AI Scoring failed for batch in ${scraper.name}:`, aiError.message || aiError);
+        if (aiError.status === 429) {
+          console.error(`[Background Engine] [QUOTA EXCEEDED] AI Scoring failed for ${scraper.name}. Please check AI Studio spend cap.`);
+        } else {
+          console.error(`[Background Engine] AI Scoring failed for batch in ${scraper.name}:`, aiError.message || aiError);
+        }
+        
         // Fallback: just use keyword matching if AI fails
         scoredBatch = minimizedData.map((post: any) => ({
           index: post.index,
           score: 5,
-          reason: "AI scoring failed, fallback to keyword match",
+          reason: aiError.status === 429 ? "AI Quota Exceeded, fallback to keyword match" : "AI scoring failed, fallback to keyword match",
           isLead: false,
           whatsappMessage: ""
         }));

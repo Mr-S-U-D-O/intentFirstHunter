@@ -604,35 +604,7 @@ export function Home() {
         confirmText="Yes, Reset"
       />
 
-      {/* ── Error Alerts for failed scrapers ── */}
-      {erroredScrapers.length > 0 && (
-        <div className="space-y-2">
-          {erroredScrapers.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl"
-            >
-              <AlertTriangle
-                size={16}
-                className="text-red-500 shrink-0 mt-0.5"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-red-700 dark:text-red-400">
-                  Scraper "{s.name}" failed
-                </p>
-                <p className="text-xs text-red-500 dark:text-red-500/80 mt-0.5 truncate">
-                  {s.lastError}
-                </p>
-              </div>
-              <span className="text-[10px] text-red-400 whitespace-nowrap font-medium">
-                {s.lastErrorAt
-                  ? relativeTime(s.lastErrorAt.toMillis?.() || 0)
-                  : ""}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Error alerts removed as per user request - errors now appear in System Activity */}
 
       {/* ── Primary KPIs ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
@@ -1350,7 +1322,7 @@ export function Home() {
             {logs.slice(0, 8).map((log, i) => (
               <div
                 key={log.id}
-                className={`flex items-start gap-3 py-3 ${i < logs.slice(0, 8).length - 1 ? "border-b border-slate-100 dark:border-slate-800" : ""}`}
+                className={`flex items-start gap-3 py-3 px-2 rounded-xl transition-colors ${log.type === 'scraper_error' ? 'bg-red-50/50 dark:bg-red-900/10' : ''} ${i < logs.slice(0, 8).length - 1 ? "border-b border-slate-100 dark:border-slate-800" : ""}`}
               >
                 <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
                   {getLogIcon(log.type)}

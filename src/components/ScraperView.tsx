@@ -24,6 +24,7 @@ export function ScraperView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [countdown, setCountdown] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isStatusToggling, setIsStatusToggling] = useState(false);
 
   const scraper = scrapers.find(s => s.id === id);
   const scraperLeads = leads.filter(l => l.scraperId === id);
@@ -77,6 +78,7 @@ export function ScraperView() {
   }
 
   const handleToggleStatus = async () => {
+    setIsStatusToggling(true);
     try {
       const newStatus = scraper.status === 'active' ? 'paused' : 'active';
       await updateDoc(doc(db, 'scrapers', scraper.id), { status: newStatus });
@@ -92,6 +94,8 @@ export function ScraperView() {
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'scrapers');
+    } finally {
+      setIsStatusToggling(false);
     }
   };
 
@@ -188,13 +192,16 @@ export function ScraperView() {
             <Button 
               onClick={handleToggleStatus} 
               variant="outline" 
+              disabled={isStatusToggling}
               className={`flex-1 sm:flex-none gap-2 rounded-xl border-2 transition-colors ${
                 scraper.status === 'active' 
                   ? 'border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20' 
                   : 'border-[#5a8c12] text-[#5a8c12] hover:bg-[#5a8c12]/10'
               }`}
             >
-              {scraper.status === 'active' ? (
+              {isStatusToggling ? (
+                <><Icons.Loader2 className="animate-spin" size={16} strokeWidth={1.5} /> Processing...</>
+              ) : scraper.status === 'active' ? (
                 <><PauseCircle size={16} strokeWidth={1.5} /> Pause</>
               ) : (
                 <><PlayCircle size={16} strokeWidth={1.5} /> Unpause</>
