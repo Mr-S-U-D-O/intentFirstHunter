@@ -377,11 +377,16 @@ export function ScraperView() {
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1 min-w-[300px]">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={lead.postTitle}>
+                        <div className="flex flex-col gap-1 max-w-md">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={lead.postTitle}>
                             {lead.postTitle}
                           </span>
-                          <span className="text-xs text-slate-500 line-clamp-1">{lead.postContent}</span>
+                          <div 
+                            className="text-[11px] text-slate-500 leading-relaxed line-clamp-2 whitespace-normal break-words"
+                            title={lead.postContent}
+                          >
+                            {lead.postContent}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>

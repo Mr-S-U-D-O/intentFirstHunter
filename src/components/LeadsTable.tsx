@@ -21,6 +21,8 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
   const [sortColumn, setSortColumn] = useState<SortColumn>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const { user } = useAuth();
 
@@ -112,6 +114,17 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
     });
   }, [leads, searchQuery, sortColumn, sortDirection]);
 
+  // Reset to first page when search changes
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const totalPages = Math.ceil(filteredAndSortedLeads.length / pageSize);
+  const paginatedLeads = filteredAndSortedLeads.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   if (leads.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500">
@@ -137,8 +150,8 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
         <Table>
       <TableHeader>
         <TableRow className="bg-slate-50/50 dark:bg-slate-800/50">
-          <TableHead className="w-[200px] cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('postTitle')}>
-            <div className="flex items-center">Post Title <SortIcon column="postTitle" /></div>
+          <TableHead className="w-[300px] cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('postTitle')}>
+            <div className="flex items-center">Opportunity <SortIcon column="postTitle" /></div>
           </TableHead>
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('subreddit')}>
             <div className="flex items-center">Target <SortIcon column="subreddit" /></div>
@@ -163,7 +176,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
         </TableRow>
       </TableHeader>
       <TableBody>
-          {filteredAndSortedLeads.map((lead) => {
+          {paginatedLeads.map((lead) => {
             const scraper = scrapers.find(s => s.id === lead.scraperId);
             
             const clientPhone = scraper?.clientPhone || '';
@@ -176,8 +189,18 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
             };
             return (
               <TableRow key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-              <TableCell className="font-medium max-w-[200px] truncate dark:text-slate-200" title={lead.postTitle}>
-                {lead.postTitle}
+              <TableCell>
+                <div className="flex flex-col gap-1 max-w-[300px]">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={lead.postTitle}>
+                    {lead.postTitle}
+                  </span>
+                  <div 
+                    className="text-[11px] text-slate-500 leading-relaxed line-clamp-2 whitespace-normal break-words"
+                    title={lead.postContent}
+                  >
+                    {lead.postContent}
+                  </div>
+                </div>
               </TableCell>
               <TableCell>
                 <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#5a8c12]/10 text-[#446715] dark:text-[#5a8c12] text-xs font-medium">
@@ -335,6 +358,58 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
       </TableBody>
     </Table>
     </div>
+
+    {/* Pagination Controls */}
+    {totalPages > 1 && (
+      <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-900/30">
+        <div className="text-xs text-slate-500 font-medium">
+          Showing <span className="text-slate-900 dark:text-slate-300">{(currentPage - 1) * pageSize + 1}</span> to <span className="text-slate-900 dark:text-slate-300">{Math.min(currentPage * pageSize, filteredAndSortedLeads.length)}</span> of <span className="text-slate-900 dark:text-slate-300">{filteredAndSortedLeads.length}</span> leads
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="h-8 w-8 p-0 rounded-lg border-2"
+          >
+            <Icons.ChevronLeft size={16} />
+          </Button>
+          
+          <div className="flex items-center gap-1 mx-2">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) pageNum = i + 1;
+              else if (currentPage <= 3) pageNum = i + 1;
+              else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = currentPage - 2 + i;
+              
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`h-8 w-8 p-0 rounded-lg border-2 ${currentPage === pageNum ? 'bg-[#5a8c12] border-[#5a8c12]' : ''}`}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="h-8 w-8 p-0 rounded-lg border-2"
+          >
+            <Icons.ChevronRight size={16} />
+          </Button>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
