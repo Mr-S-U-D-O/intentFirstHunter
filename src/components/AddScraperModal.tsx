@@ -666,6 +666,8 @@ export function AddScraperModal({
                       if (!currentTargets.includes(t)) {
                         setTarget(currentTargets.length > 0 ? `${target}, ${t}` : t);
                       }
+                      // Remove from suggestions after use
+                      setSuggestedTargets(prev => prev.filter(item => item !== t));
                     }}
                     className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 hover:bg-[#5a8c12]/20 hover:text-[#5a8c12] transition-colors border border-slate-200 dark:border-slate-700"
                   >
@@ -714,6 +716,8 @@ export function AddScraperModal({
                       if (!currentKeywords.includes(kw)) {
                         setKeyword(currentKeywords.length > 0 ? `${keyword}, ${kw}` : kw);
                       }
+                      // Remove from suggestions after use
+                      setSuggestedKeywords(prev => prev.filter(x => x !== kw));
                     }}
                     className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-400 hover:bg-[#5a8c12]/20 hover:text-[#5a8c12] transition-colors border border-slate-200 dark:border-slate-700"
                   >

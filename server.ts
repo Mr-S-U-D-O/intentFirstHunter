@@ -143,17 +143,17 @@ async function startServer() {
         return res.status(500).json({ error: "Gemini API key not configured" });
       }
 
-      const prompt = `You are an expert marketing strategist and lead generation specialist.
+      const prompt = `You are a world-class marketing psychologist and lead generation expert.
       
       CLIENT: ${clientName || 'A business'}
       IDEAL CUSTOMER PROFILE: ${idealCustomerProfile || 'General commercial intent'}
       
-      Based on this profile, suggest 15 high-intent keywords or short phrases that potential customers would use when looking for this business's services on platforms like Reddit, Craigslist, or Hacker News.
+      TASK: Based STRICTLY on the Ideal Customer Profile (IDP) provided above, suggest 15 high-intent "trigger phrases" or "active search keywords". 
       
-      Focus on "problem-aware" and "solution-aware" keywords (e.g., "need a plumber", "recommend a lawyer", "looking for web design").
+      THINK: What EXACTLY would this specific persona type into a search bar if they were desperate for a solution? Avoid generic phrases. Prioritize specific pain points (e.g., "how to fix X", "alternative to Y that isn't Z", "recommendation for niche industry A").
       
       Return ONLY a valid JSON array of strings.
-      Format: ["keyword1", "keyword2", ...]`;
+      Format: ["keyphrase1", "keyphrase2", ...]`;
 
       const aiResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -183,22 +183,22 @@ async function startServer() {
         return res.status(500).json({ error: "Gemini API key not configured" });
       }
 
-      const prompt = `You are an expert marketing strategist and lead generation specialist.
+      const prompt = `You are an expert digital detective and marketing strategist.
       
       CLIENT: ${clientName || 'A business'}
       IDEAL CUSTOMER PROFILE: ${idealCustomerProfile || 'General commercial intent'}
       SELECTED PLATFORMS: ${platforms?.join(', ') || 'Reddit'}
       
-      Based on this profile, suggest 10-15 specific "Targets" WHERE these ideal customers hang out. 
+      TASK: Based STRICTLY on the Ideal Customer Profile (IDP), identify specific communities (Targets) where this EXACT customer archetype discusses their problems.
       
-      CRITICAL: You MUST ONLY suggest targets for the platforms listed in "SELECTED PLATFORMS". 
-      - If Reddit is selected: Suggest subreddits (e.g., "Entrepreneur", "reactjs").
-      - If Stack Overflow is selected: Suggest tags (e.g., "javascript", "python").
-      - If Craigslist is selected: Suggest specific search keywords (e.g., "plumbing needed", "hiring web designer").
+      CRITICAL RELEVANCE: Look for niche "watering holes" rather than generic broad categories. 
+      If the IDP mentions "B2B SaaS owners", don't just suggest "r/business", suggest "r/SaaS" or "r/entrepreneur".
+      
+      RESTRICTION: You MUST ONLY suggest targets for the platforms listed in "SELECTED PLATFORMS". 
+      - If Reddit is selected: Suggest specific subreddits (e.g., "Entrepreneur", "reactjs").
+      - If Stack Overflow is selected: Suggest specific technical tags (e.g., "javascript", "python").
+      - If Craigslist is selected: Suggest specific high-intent search keywords (e.g., "needed: plumber", "hiring admin").
       - If Hacker News is selected: Suggest categories (e.g., "ask", "show").
-      
-      DO NOT suggest subreddits if Reddit is not in the platform list. 
-      DO NOT suggest Craigslist terms if Craigslist is not selected.
       
       Return ONLY a valid JSON array of strings.
       Format: ["target1", "target2", ...]`;

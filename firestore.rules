@@ -73,7 +73,7 @@ service cloud.firestore {
     }
     
     function isValidOptionalString(field, minLen, maxLen) {
-      return !('field' in request.resource.data) ||
+      return !(field in request.resource.data) ||
              (request.resource.data[field] is string &&
               request.resource.data[field].size() >= minLen &&
               request.resource.data[field].size() <= maxLen);
@@ -89,15 +89,15 @@ service cloud.firestore {
       
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
-             validStringLength('name', 1, 100) &&
+             validStringLength('name', 1, 250) &&
              (!('subreddit' in request.resource.data) || validStringLength('subreddit', 1, 100)) &&
              (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'hackernews', 'stackoverflow', 'craigslist']) &&
-             (!('target' in request.resource.data) || validStringLength('target', 0, 200)) &&
+             (!('target' in request.resource.data) || validStringLength('target', 0, 500)) &&
              (!('city' in request.resource.data) || validStringLength('city', 1, 100)) &&
              (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&
-             validStringLength('keyword', 1, 500) &&
+             validStringLength('keyword', 1, 2000) &&
              (!('leadDefinition' in request.resource.data) || validStringLength('leadDefinition', 1, 2000)) &&
-             (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 100)) &&
+             (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 200)) &&
              (!('clientPhone' in request.resource.data) || validStringLength('clientPhone', 1, 50)) &&
              (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 0, 5000)) &&
              request.resource.data.intervalMinutes is number &&
@@ -120,15 +120,15 @@ service cloud.firestore {
       let requiredFields = ['name', 'keyword', 'intervalMinutes', 'status', 'createdAt', 'userId'];
       return hasOnlyAllowedFields(allowedFields) &&
              hasRequiredFields(requiredFields) &&
-             validStringLength('name', 1, 100) &&
+             validStringLength('name', 1, 250) &&
              (!('subreddit' in request.resource.data) || validStringLength('subreddit', 1, 100)) &&
              (!('platform' in request.resource.data) || request.resource.data.platform in ['reddit', 'hackernews', 'stackoverflow', 'craigslist']) &&
-             (!('target' in request.resource.data) || validStringLength('target', 0, 200)) &&
+             (!('target' in request.resource.data) || validStringLength('target', 0, 500)) &&
              (!('city' in request.resource.data) || validStringLength('city', 1, 100)) &&
              (!('category' in request.resource.data) || validStringLength('category', 1, 50)) &&
-             validStringLength('keyword', 1, 500) &&
+             validStringLength('keyword', 1, 2000) &&
              (!('leadDefinition' in request.resource.data) || validStringLength('leadDefinition', 1, 2000)) &&
-             (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 100)) &&
+             (!('clientName' in request.resource.data) || validStringLength('clientName', 1, 200)) &&
              (!('clientPhone' in request.resource.data) || validStringLength('clientPhone', 1, 50)) &&
              (!('idealCustomerProfile' in request.resource.data) || validStringLength('idealCustomerProfile', 0, 5000)) &&
              request.resource.data.intervalMinutes is number &&
