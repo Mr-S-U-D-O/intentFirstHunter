@@ -538,6 +538,14 @@ async function startServer() {
 }
 
 // Background Scraper Logic
+// Phase 2.0: Smart error handling with exponential backoff.
+// - After each consecutive failure, the scraper waits 2^N minutes (capped at 60 min)
+//   before retrying, preventing rapid-fire failures from hammering external APIs.
+// - After 5 consecutive failures, the scraper auto-pauses and logs a warning.
+// - On a successful run, consecutiveErrors resets to 0.
+const MAX_CONSECUTIVE_ERRORS = 5;
+const MAX_BACKOFF_MINUTES = 60;
+
 async function runBackgroundScrapers() {
   try {
     console.log(`[Background Engine] Checking for scrapers to run... ${new Date().toISOString()}`);
@@ -547,10 +555,22 @@ async function runBackgroundScrapers() {
     for (const scraperDoc of querySnapshot.docs) {
       const scraper = { id: scraperDoc.id, ...scraperDoc.data() } as any;
       const lastRun = scraper.lastRunAt?.toMillis?.() || scraper.createdAt?.toMillis?.() || 0;
-      const nextRun = lastRun + (scraper.intervalMinutes * 60 * 1000);
+      
+      // Phase 2.0: Apply exponential backoff if the scraper has consecutive errors.
+      // Normal interval + backoff penalty = effective cooldown between retries.
+      const consecutiveErrors = scraper.consecutiveErrors || 0;
+      const backoffMinutes = consecutiveErrors > 0 
+        ? Math.min(MAX_BACKOFF_MINUTES, Math.pow(2, consecutiveErrors))
+        : 0;
+      const effectiveInterval = (scraper.intervalMinutes + backoffMinutes) * 60 * 1000;
+      const nextRun = lastRun + effectiveInterval;
       
       if (Date.now() >= nextRun) {
-        console.log(`[Background Engine] Running scraper: ${scraper.name} (r/${scraper.subreddit})`);
+        if (consecutiveErrors > 0) {
+          console.log(`[Background Engine] Retrying scraper: ${scraper.name} (attempt after ${consecutiveErrors} failures, backoff: ${backoffMinutes}min)`);
+        } else {
+          console.log(`[Background Engine] Running scraper: ${scraper.name} (${scraper.platform || 'reddit'}/${scraper.target || scraper.subreddit})`);
+        }
         try {
           await executeScraper(scraper);
           // Add a 5-second delay between scrapers to avoid rate limits across different platforms
@@ -1035,6 +1055,16 @@ async function executeScraper(scraper: any) {
 
     await updateScraperLastRun(scraper);
 
+    // Phase 2.0: Clear consecutive errors on success — the scraper is healthy again.
+    if ((scraper.consecutiveErrors || 0) > 0) {
+      await adminDb.collection('scrapers').doc(scraper.id).update({
+        consecutiveErrors: 0,
+        lastError: null,
+        lastErrorAt: null
+      });
+      console.log(`[Background Engine] ✓ Scraper ${scraper.name} recovered after ${scraper.consecutiveErrors} failures. Error state cleared.`);
+    }
+
     // Log completion
     if (newLeadsCount > 0) {
       await adminDb.collection('logs').add({
@@ -1049,25 +1079,44 @@ async function executeScraper(scraper: any) {
 
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[Background Engine] Error running scraper ${scraper.name}:`, errorMessage);
+    const newConsecutiveErrors = (scraper.consecutiveErrors || 0) + 1;
+    console.error(`[Background Engine] Error running scraper ${scraper.name} (failure #${newConsecutiveErrors}):`, errorMessage);
 
-    // Phase 1.3: Persist error state to Firestore so the dashboard can surface it.
-    // The scraper document is tagged with a `lastError` and `lastErrorAt` field;
-    // the UI reads these to show an error badge on problematic scrapers.
+    // Phase 2.0: Smart error handling with exponential backoff + auto-pause.
     try {
       const scraperRef = adminDb.collection('scrapers').doc(scraper.id);
-      await scraperRef.update({
+      const updatePayload: any = {
         lastError: errorMessage.substring(0, 500),
-        lastErrorAt: FieldValue.serverTimestamp()
-      });
+        lastErrorAt: FieldValue.serverTimestamp(),
+        consecutiveErrors: newConsecutiveErrors,
+        // CRITICAL: Update lastRunAt on error too, so the backoff timer starts
+        // from NOW, not from the last successful run. Without this, the scraper
+        // would retry every 60 seconds regardless of backoff.
+        lastRunAt: FieldValue.serverTimestamp()
+      };
+
+      // Auto-pause after MAX_CONSECUTIVE_ERRORS failures to prevent infinite retries
+      if (newConsecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        updatePayload.status = 'paused';
+        console.warn(`[Background Engine] ⚠ AUTO-PAUSED scraper "${scraper.name}" after ${newConsecutiveErrors} consecutive failures. Manual restart required.`);
+      } else {
+        const nextBackoff = Math.min(MAX_BACKOFF_MINUTES, Math.pow(2, newConsecutiveErrors));
+        console.warn(`[Background Engine] Scraper "${scraper.name}" will retry with ${nextBackoff}min backoff (${MAX_CONSECUTIVE_ERRORS - newConsecutiveErrors} attempts remaining before auto-pause)`);
+      }
+
+      await scraperRef.update(updatePayload);
 
       // Write a structured error log visible in the Activity Feed
+      const logMessage = newConsecutiveErrors >= MAX_CONSECUTIVE_ERRORS
+        ? `Scraper AUTO-PAUSED after ${newConsecutiveErrors} consecutive failures: ${errorMessage.substring(0, 150)}`
+        : `Scraper failed (attempt ${newConsecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${errorMessage.substring(0, 150)}`;
+
       await adminDb.collection('logs').add({
-        type: 'scraper_error',
+        type: newConsecutiveErrors >= MAX_CONSECUTIVE_ERRORS ? 'scraper_auto_paused' : 'scraper_error',
         scraperId: scraper.id,
         scraperName: scraper.name,
-        message: `Scraper failed: ${errorMessage.substring(0, 200)}`,
-        details: `Platform: ${scraper.platform || 'reddit'} | Target: ${scraper.target || scraper.subreddit || 'N/A'}`,
+        message: logMessage,
+        details: `Platform: ${scraper.platform || 'reddit'} | Target: ${scraper.target || scraper.subreddit || 'N/A'} | Next backoff: ${Math.min(MAX_BACKOFF_MINUTES, Math.pow(2, newConsecutiveErrors))}min`,
         createdAt: FieldValue.serverTimestamp(),
         userId: scraper.userId
       });

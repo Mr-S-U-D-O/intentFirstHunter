@@ -362,32 +362,92 @@ export function ScraperView() {
                         <Tooltip>
                           <TooltipTrigger 
                             render={
-                              <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold cursor-help ${
-                                lead.score >= 8 ? 'bg-green-100 text-green-700' :
-                                lead.score >= 6 ? 'bg-amber-100 text-amber-700' :
-                                'bg-slate-100 text-slate-700'
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-black cursor-help transition-all duration-200 hover:scale-110 hover:shadow-lg ${
+                                lead.score >= 8 ? 'bg-gradient-to-r from-green-100 to-emerald-50 text-green-700 dark:from-green-900/40 dark:to-emerald-900/20 dark:text-green-400 ring-1 ring-green-200/50 dark:ring-green-800/30' :
+                                lead.score >= 6 ? 'bg-gradient-to-r from-amber-100 to-yellow-50 text-amber-700 dark:from-amber-900/40 dark:to-yellow-900/20 dark:text-amber-400 ring-1 ring-amber-200/50 dark:ring-amber-800/30' :
+                                'bg-gradient-to-r from-slate-100 to-slate-50 text-slate-600 dark:from-slate-800 dark:to-slate-800/50 dark:text-slate-400 ring-1 ring-slate-200/50 dark:ring-slate-700/30'
                               }`}>
+                                <BrainCircuit size={11} />
                                 {lead.score}/10
                               </span>
                             }
                           />
-                          <TooltipContent side="top" className="w-80 p-4 rounded-2xl">
-                             <p className="text-xs italic text-slate-600">"{lead.reason}"</p>
+                          <TooltipContent side="top" className="w-96 p-0 overflow-hidden border-none shadow-2xl shadow-black/20 rounded-2xl backdrop-blur-xl">
+                            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
+                              {/* Header */}
+                              <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800/80 dark:to-slate-800/40 border-b border-slate-100 dark:border-slate-700/50 flex items-center gap-2.5">
+                                <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#5a8c12]/20 to-[#84b53b]/10 text-[#5a8c12]">
+                                  <BrainCircuit size={14} strokeWidth={2.5} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200">AI Analysis</span>
+                                <div className={`ml-auto px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide ${
+                                  lead.score >= 8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                  lead.score >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                  'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                                }`}>
+                                  {lead.score >= 8 ? '🔥' : lead.score >= 6 ? '⚡' : '○'} {lead.score}/10
+                                </div>
+                              </div>
+                              {/* Body */}
+                              <div className="p-4">
+                                <p className="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                  "{lead.reason}"
+                                </p>
+                              </div>
+                              {/* Footer */}
+                              <div className="px-4 py-2.5 bg-gradient-to-r from-slate-50/80 to-transparent dark:from-slate-800/40 border-t border-slate-100/50 dark:border-slate-700/30 flex items-center justify-between">
+                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.15em]">Powered by Gemini AI</span>
+                                <div className={`w-2 h-2 rounded-full animate-pulse ${
+                                  lead.score >= 8 ? 'bg-green-400' : lead.score >= 6 ? 'bg-amber-400' : 'bg-slate-300'
+                                }`} />
+                              </div>
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1 max-w-md">
-                          <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={lead.postTitle}>
-                            {lead.postTitle}
-                          </span>
-                          <div 
-                            className="text-[11px] text-slate-500 leading-relaxed line-clamp-2 whitespace-normal break-words"
-                            title={lead.postContent}
-                          >
-                            {lead.postContent}
-                          </div>
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <div className="flex flex-col gap-1 max-w-md cursor-help">
+                                <span className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                                  {lead.postTitle}
+                                </span>
+                                <div className="text-[11px] text-slate-500 leading-relaxed line-clamp-2 whitespace-normal break-words">
+                                  {lead.postContent}
+                                </div>
+                              </div>
+                            }
+                          />
+                          <TooltipContent side="bottom" className="w-[420px] p-0 overflow-hidden border-none shadow-2xl shadow-black/20 rounded-2xl backdrop-blur-xl">
+                            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl">
+                              {/* Header */}
+                              <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-slate-800/80 dark:to-slate-800/40 border-b border-slate-100 dark:border-slate-700/50 flex items-center gap-2.5">
+                                <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/15 to-indigo-500/10 text-blue-600 dark:text-blue-400">
+                                  <MessageCircle size={14} strokeWidth={2.5} />
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200">Full Post Preview</span>
+                              </div>
+                              {/* Body */}
+                              <div className="p-4 space-y-3">
+                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug">
+                                  {lead.postTitle}
+                                </h4>
+                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                  <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                                    {lead.postContent || 'No content available for this post.'}
+                                  </p>
+                                </div>
+                              </div>
+                              {/* Footer */}
+                              <div className="px-4 py-2.5 bg-gradient-to-r from-slate-50/80 to-transparent dark:from-slate-800/40 border-t border-slate-100/50 dark:border-slate-700/30 flex items-center gap-2">
+                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.15em]">
+                                  {lead.postAuthor ? `by ${lead.postAuthor}` : 'Source post'}
+                                </span>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
