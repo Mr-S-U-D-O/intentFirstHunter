@@ -3,20 +3,24 @@ import { useAuth } from './AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Target, ShieldCheck, Mail, Lock, ArrowRight, Chrome, LogIn } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Chrome, ShieldCheck, Globe, Users, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RadarBackground } from './RadarBackground';
 
-type LoginView = 'client' | 'provider' | 'forgot-password';
+type UserType = 'visitor' | 'team';
+type AuthView = 'login' | 'forgot-password';
 
 export function LoginScreen() {
   const { signIn, signInWithEmail, resetPassword } = useAuth();
-  const [view, setView] = useState<LoginView>('client');
+  const [userType, setUserType] = useState<UserType>('visitor');
+  const [view, setView] = useState<AuthView>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Background image URL - can be changed easily
+  const backgroundImageUrl = "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1400";
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,183 +50,254 @@ export function LoginScreen() {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await resetPassword(email);
+      setSuccess('Recovery link sent! Check your inbox.');
+      setError(null);
+    } catch (err: any) {
+      setError('Failed to send reset link. Please check the email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#020617] font-sans antialiased overflow-hidden selection:bg-[#5a8c12]/30">
-      <RadarBackground />
-      
-      <div className="relative z-10 w-full max-w-[440px] px-6">
-        {/* Logo Section */}
+    <div className="min-h-screen w-full bg-white flex overflow-hidden font-sans antialiased text-slate-900 selection:bg-slate-200">
+      <motion.div 
+        layout
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className={`flex w-full min-h-screen p-6 gap-6 ${userType === 'team' ? 'flex-row-reverse' : 'flex-row'}`}
+      >
+        {/* Photographic Side */}
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center mb-10"
+          layout
+          className="relative flex-1 hidden lg:flex overflow-hidden rounded-[2rem] border-2 border-slate-900"
         >
-          <div className="w-14 h-14 rounded-2xl bg-[#5a8c12] flex items-center justify-center shadow-[0_0_30px_rgba(90,140,18,0.3)] border border-[#5a8c12]/40 mb-4">
-            <Target className="text-white w-8 h-8" />
+          <img 
+            src={backgroundImageUrl} 
+            alt="Workspace" 
+            className="absolute inset-0 w-full h-full object-cover filter contrast-[1.05] brightness-[0.95]"
+          />
+          <div className="absolute inset-0 bg-black/5" /> {/* Very subtle overlay */}
+          
+          {/* Subtle info on the image */}
+          <div className="absolute bottom-10 left-10 text-white z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
+                <Target className="w-5 h-5" />
+              </div>
+              <span className="font-bold tracking-tight text-xl">IntentFirstHunter</span>
+            </div>
+            <p className="text-white/70 max-w-sm text-sm font-medium leading-relaxed">
+              Global intelligence for high-value growth. Powered by proprietary extraction algorithms.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            IntentFirst<span className="text-[#5a8c12]">Hunter</span>
-          </h1>
-          <p className="text-slate-500 text-sm mt-1 uppercase tracking-[0.2em] font-medium">Growth Intelligence</p>
         </motion.div>
 
-        {/* Main Auth Card */}
-        <motion.div
-           initial={{ opacity: 0, scale: 0.98 }}
-           animate={{ opacity: 1, scale: 1 }}
-           className="relative overflow-hidden group"
+        {/* Form Side */}
+        <motion.div 
+          layout
+          className="w-full lg:w-[500px] xl:w-[600px] flex flex-col justify-center px-6 sm:px-12 md:px-20"
         >
-          {/* Subtle Glow Border */}
-          <div className="absolute -inset-[1px] bg-gradient-to-r from-transparent via-[#5a8c12]/20 to-transparent rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          
-          <div className="relative bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 sm:p-10 shadow-2xl">
-            <AnimatePresence mode="wait">
-              {view === 'forgot-password' ? (
-                <motion.div
-                  key="forgot"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  className="space-y-6"
-                >
-                   <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Recover Account</h2>
-                    <p className="text-slate-400 text-sm leading-relaxed">Enter your email and we'll send a recovery link.</p>
-                  </div>
+          <div className="max-w-md w-full mx-auto">
+            {/* Logo for mobile */}
+            <div className="flex lg:hidden items-center gap-2 mb-12">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <span className="font-bold text-xl tracking-tight">IntentFirstHunter</span>
+            </div>
 
-                  <form onSubmit={(e) => { e.preventDefault(); resetPassword(email); setSuccess('Link sent!'); }} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                        <Input
-                          type="email"
-                          placeholder="name@company.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="bg-white/[0.03] border-white/10 text-white pl-12 h-13 rounded-2xl focus:ring-[#5a8c12] focus:border-[#5a8c12] transition-all placeholder:text-slate-600"
-                        />
-                      </div>
-                    </div>
-                    {success && <p className="text-[#5a8c12] text-sm text-center font-medium">{success}</p>}
-                    <Button type="submit" className="w-full h-13 bg-[#5a8c12] hover:bg-[#446715] text-white font-bold rounded-2xl shadow-lg shadow-[#5a8c12]/20">
-                      Send Link
-                    </Button>
-                    <button onClick={() => setView('client')} className="w-full text-slate-400 text-sm hover:text-white transition-colors">Return to login</button>
-                  </form>
-                </motion.div>
-              ) : (
+            {/* Experience Toggler */}
+            <div className="mb-12">
+              <div className="flex p-1 bg-slate-100 rounded-full border border-slate-200">
+                <button 
+                  onClick={() => setUserType('visitor')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all ${userType === 'visitor' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  <Globe size={14} /> Visitor/Investor
+                </button>
+                <button 
+                  onClick={() => setUserType('team')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-bold transition-all ${userType === 'team' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  <Users size={14} /> Team
+                </button>
+              </div>
+            </div>
+
+            <AnimatePresence mode="wait">
+              {view === 'login' ? (
                 <motion.div
-                  key="login"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
+                  key="login-view"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
                   className="space-y-8"
                 >
-                  <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h2>
-                    <p className="text-slate-400 text-sm leading-relaxed">Sign in to your intelligence profile.</p>
+                  <div className="space-y-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                      {userType === 'team' ? 'Team Access' : 'Investor Intelligence'}
+                    </h1>
+                    <p className="text-slate-500 font-medium">
+                      {userType === 'team' ? 'Enter credentials to access the hub.' : 'Access your private intelligence portal.'}
+                    </p>
                   </div>
 
-                  {/* Minimalist Tab Switcher */}
-                  <div className="flex p-1 bg-white/[0.03] border border-white/10 rounded-2xl h-12">
-                     <button 
-                       onClick={() => setView('client')}
-                       className={`flex-1 rounded-xl text-sm font-bold transition-all ${view === 'client' ? 'bg-[#5a8c12] text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                     >
-                       Client
-                     </button>
-                     <button 
-                       onClick={() => setView('provider')}
-                       className={`flex-1 rounded-xl text-sm font-bold transition-all ${view === 'provider' ? 'bg-[#5a8c12] text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-                     >
-                       Provider
-                     </button>
-                  </div>
-
-                  <form onSubmit={handleEmailLogin} className="space-y-5">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Email address</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                        <Input
-                          type="email"
-                          placeholder="name@company.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          className="bg-white/[0.03] border-white/10 text-white pl-12 h-13 rounded-2xl focus:ring-[#5a8c12] focus:border-[#5a8c12] transition-all placeholder:text-slate-600"
-                        />
+                  <form onSubmit={handleEmailLogin} className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">Email Address</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <Input
+                            id="email"
+                            type="email"
+                            placeholder="name@company.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            className="h-14 pl-12 border-2 border-slate-100 rounded-2xl focus:border-slate-900 focus:ring-0 transition-all bg-slate-50/50"
+                          />
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center px-1">
-                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Password</Label>
-                        <button type="button" onClick={() => setView('forgot-password')} className="text-[10px] font-bold text-[#5a8c12] uppercase tracking-wider hover:underline">Forgot?</button>
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          className="bg-white/[0.03] border-white/10 text-white pl-12 h-13 rounded-2xl focus:ring-[#5a8c12] focus:border-[#5a8c12] transition-all placeholder:text-slate-600"
-                        />
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center px-1">
+                          <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Password</Label>
+                        </div>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          <Input
+                            id="password"
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="h-14 pl-12 border-2 border-slate-100 rounded-2xl focus:border-slate-900 focus:ring-0 transition-all bg-slate-50/50"
+                          />
+                        </div>
                       </div>
                     </div>
 
                     {error && (
-                      <div className="p-3.5 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs font-medium text-center">
+                      <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold text-center">
                         {error}
                       </div>
                     )}
 
-                    <Button type="submit" disabled={loading} className="w-full h-13 bg-[#5a8c12] hover:bg-[#446715] text-white font-bold rounded-2xl shadow-xl shadow-[#5a8c12]/20 transition-all active:scale-[0.98] group">
-                      {loading ? 'Authenticating...' : (
-                        <span className="flex items-center gap-2">
-                          Sign In <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                        </span>
-                      )}
-                    </Button>
+                    <div className="space-y-4">
+                      <Button 
+                        type="submit" 
+                        disabled={loading} 
+                        className="w-full h-14 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group shadow-xl shadow-slate-200"
+                      >
+                        {loading ? 'Verifying...' : (
+                          <>Log In <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
+                        )}
+                      </Button>
+
+                      <div className="flex flex-col items-center gap-3">
+                        <button 
+                          type="button" 
+                          onClick={() => setView('forgot-password')}
+                          className="text-xs font-bold text-slate-400 hover:text-slate-900 underline decoration-slate-200 underline-offset-4 transition-all"
+                        >
+                          Forgot Password?
+                        </button>
+                        <button 
+                          type="button"
+                          className="text-xs font-bold text-slate-400 hover:text-slate-900 underline decoration-slate-200 underline-offset-4 transition-all"
+                        >
+                          Don't have an account? Sign Up
+                        </button>
+                      </div>
+                    </div>
                   </form>
 
-                  <div className="relative py-2">
-                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-[#0f172a]/0 px-2 text-slate-500 font-bold tracking-widest">Or continue with</span></div>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center md:hidden xl:flex"><div className="w-full border-t border-slate-100"></div></div>
+                    <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest text-slate-300"><span className="bg-white px-4">Or alternative access</span></div>
                   </div>
 
                   <Button 
                     onClick={handleGoogleLogin} 
                     disabled={loading}
                     variant="outline"
-                    className="w-full h-13 bg-white hover:bg-slate-50 text-slate-950 font-bold border-none rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                    className="w-full h-14 bg-white border-2 border-slate-100 hover:bg-slate-50 hover:border-slate-200 text-slate-900 font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-sm"
                   >
-                    <Chrome size={18} />
-                    Google Account
+                    <Chrome size={20} className="text-[#4285F4]" />
+                    Authorized Google Login
                   </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="forgot-view"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-8"
+                >
+                  <div className="space-y-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Recovery</h1>
+                    <p className="text-slate-500 font-medium">Enter your email for a secure reset link.</p>
+                  </div>
+
+                  <form onSubmit={handleResetPassword} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-email" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 pl-1">Registered Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="name@company.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          className="h-14 pl-12 border-2 border-slate-100 rounded-2xl focus:border-slate-900 focus:ring-0 transition-all bg-slate-50/50"
+                        />
+                      </div>
+                    </div>
+
+                    {success && (
+                      <div className="p-4 bg-green-50 border border-green-100 rounded-2xl text-green-600 text-xs font-bold text-center">
+                        {success}
+                      </div>
+                    )}
+
+                    <div className="space-y-4">
+                      <Button type="submit" className="w-full h-14 bg-slate-900 hover:bg-black text-white font-bold rounded-2xl transition-all">
+                        Send Reset Link
+                      </Button>
+                      <button 
+                        onClick={() => { setView('login'); setSuccess(null); }}
+                        className="w-full text-xs font-bold text-slate-400 hover:text-slate-900 underline decoration-slate-200 underline-offset-4 transition-all"
+                      >
+                        Back to Login
+                      </button>
+                    </div>
+                  </form>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        </motion.div>
 
-        {/* Footer */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-10 text-center space-y-4"
-        >
-          <div className="flex items-center justify-center gap-6 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-            <span className="flex items-center gap-1.5"><ShieldCheck size={12} className="text-[#5a8c12]" /> Secure Access</span>
-            <span className="w-1 h-1 bg-slate-800 rounded-full" />
-            <span>v2.8.5.1</span>
+            <div className="mt-16 flex items-center justify-center gap-4 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+              <span className="flex items-center gap-1.5"><ShieldCheck size={12} /> Secure Portal</span>
+              <span className="w-1 h-1 bg-slate-200 rounded-full" />
+              <span>v2.9.0</span>
+            </div>
           </div>
-          <p className="text-[9px] text-slate-700 uppercase tracking-[0.3em]">© {new Date().getFullYear()} IntentFirstHunter Global</p>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 }
