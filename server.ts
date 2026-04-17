@@ -75,26 +75,7 @@ const databaseId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestor
   ? firebaseConfig.firestoreDatabaseId 
   : undefined;
 
-// Add this route to update rules
-const app = express();
-app.post("/api/admin/update-rules", async (req, res) => {
-  try {
-    const rules = readFileSync(path.join(process.cwd(), 'firestore.rules'), 'utf8');
-    const projectId = firebaseConfig.projectId;
-    
-    // Use the security rules API to update rules for the named database
-    const rulesClient = getSecurityRules(getApp()) as any;
-    const ruleset = await rulesClient.createRuleset({
-      files: [{ name: 'firestore.rules', content: rules }]
-    });
-    await rulesClient.releaseRuleset(`cloud.firestore${databaseId ? `/${databaseId}` : ''}`, ruleset.name);
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error updating rules:", error);
-    res.status(500).json({ error: "Failed to update rules" });
-  }
-});
+// Removed global update-rules app
 
 console.log("[Firebase Admin] Using Database ID:", databaseId || "(default)");
 console.log("[Firebase Admin] Project ID:", firebaseConfig.projectId);
@@ -133,6 +114,40 @@ async function startServer() {
   // API routes FIRST
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  app.post("/api/admin/update-rules", async (req, res) => {
+    try {
+      const rules = readFileSync(path.join(process.cwd(), 'firestore.rules'), 'utf8');
+      const projectId = firebaseConfig.projectId;
+      
+      console.log(`[Rules Update] Deploying to Project: ${projectId}, Database: ${databaseId || '(default)'}`);
+      
+      // Use the security rules API to update rules for the named database
+      const rulesClient = getSecurityRules(getApp()) as any;
+      const ruleset = await rulesClient.createRuleset({
+        files: [{ name: 'firestore.rules', content: rules }]
+      });
+      
+      // Explicit database path for AI Studio instances
+      const releaseName = databaseId 
+        ? `projects/${projectId}/databases/${databaseId}/documents`
+        : `projects/${projectId}/databases/(default)/documents`;
+        
+      console.log(`[Rules Update] Releasing ruleset: ${ruleset.name} to ${releaseName}`);
+      
+      try {
+        await rulesClient.releaseRuleset(releaseName, ruleset.name);
+      } catch (releaseError: any) {
+        console.warn(`[Rules Update] Primary release failed, trying fallback: ${releaseError.message}`);
+        await rulesClient.releaseRuleset(`cloud.firestore${databaseId ? `/${databaseId}` : ''}`, ruleset.name);
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error updating rules details:", error);
+      res.status(500).json({ error: "Failed to update rules", details: error.message });
+    }
   });
 
   app.post("/api/suggest-keywords", express.json(), async (req, res) => {
@@ -585,7 +600,11 @@ async function startServer() {
         
         if (contentType && contentType.includes('application/json')) {
           const data = await response.json();
-          console.log("[Firebase Admin] Rules deployment:", data);
+          if (data.error) {
+            console.error("[Firebase Admin] Rules deployment ERROR:", data.error, data.details || "");
+          } else {
+            console.log("[Firebase Admin] Rules deployment:", data);
+          }
         } else {
           const text = await response.text();
           console.warn("[Firebase Admin] Rules deployment returned non-JSON response:", text.substring(0, 100));
