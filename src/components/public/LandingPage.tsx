@@ -224,12 +224,12 @@ export function LandingPage() {
               Now Available
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extralight tracking-tighter leading-[1.05] text-black">
-              Be the expert they <span className="font-bold text-black border-b-2 border-[#5a8c12]">need</span>,<br className="hidden md:block"/>
-              exactly when they <span className="font-bold text-black border-b-2 border-[#5a8c12]">need it</span>.
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-extralight tracking-tighter leading-[1.05] text-black">
+              Be the expert they <span className="font-bold text-black border-b-4 border-[#5a8c12]">need</span>,<br className="hidden md:block"/>
+              exactly when they <span className="font-bold text-black border-b-4 border-[#5a8c12]">need it</span>.
             </h1>
             
-            <p className="mt-5 text-base md:text-lg text-slate-600 font-light leading-relaxed max-w-xl">
+            <p className="mt-8 text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-xl">
               Don't pitch. Just be the expert. We locate the conversations where your proof-of-expertise converts entire communities at once.
             </p>
 

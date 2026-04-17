@@ -73,7 +73,7 @@ export function ScraperView() {
   if (!scraper) {
     return (
       <div className="flex items-center justify-center h-full text-slate-500">
-        Monitor not found or loading...
+        Tracker not found or loading...
       </div>
     );
   }
@@ -89,7 +89,7 @@ export function ScraperView() {
         type: newStatus === 'active' ? 'scraper_resumed' : 'scraper_paused',
         scraperId: scraper.id,
         scraperName: scraper.name,
-        message: `Monitor "${scraper.name}" ${newStatus === 'active' ? 'resumed' : 'paused'}`,
+        message: `Tracker "${scraper.name}" ${newStatus === 'active' ? 'resumed' : 'paused'}`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -314,7 +314,7 @@ export function ScraperView() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-slate-800 tracking-tight">Opportunity Feed</h1>
-            <p className="text-sm text-slate-500 font-medium">Monitor conversations where your expertise wins.</p>
+            <p className="text-sm text-slate-500 font-medium">Identify conversations where your expertise wins.</p>
             </div>
           </div>
           <div className="relative max-w-sm w-full">

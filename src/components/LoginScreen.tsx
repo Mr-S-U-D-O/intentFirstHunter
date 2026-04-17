@@ -3,8 +3,8 @@ import { useAuth } from './AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, ArrowRight, Chrome, ShieldCheck, Globe, Users, Target } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Mail, Lock, ArrowRight, ShieldCheck, Globe, Users, Target } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SEO } from './SEO';
 
 type UserType = 'visitor' | 'team';
@@ -97,7 +97,7 @@ export function LoginScreen() {
               <span className="font-bold tracking-tight text-xl">Preemptly</span>
             </div>
             <p className="text-white/70 max-w-sm text-sm font-medium leading-relaxed">
-              Global intelligence for high-value growth. Powered by proprietary extraction algorithms.
+              Global visibility for organic growth. Powered by proprietary expertise extraction.
             </p>
           </div>
         </div>
@@ -145,10 +145,10 @@ export function LoginScreen() {
                 >
                   <div className="space-y-2">
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                      {userType === 'team' ? 'Team Access' : 'Investor Intelligence'}
+                      {userType === 'team' ? 'Team Access' : 'Growth Visibility'}
                     </h1>
                     <p className="text-slate-500 font-medium">
-                      {userType === 'team' ? 'Enter credentials to access the hub.' : 'Access your private intelligence portal.'}
+                      {userType === 'team' ? 'Enter credentials to access the hub.' : 'Access your private organic growth portal.'}
                     </p>
                   </div>
 
@@ -240,7 +240,7 @@ export function LoginScreen() {
                     variant="outline"
                     className="w-full h-14 bg-white border-2 border-slate-100 hover:bg-slate-50 hover:border-slate-200 text-slate-900 font-bold rounded-2xl transition-all flex items-center justify-center gap-3 shadow-sm"
                   >
-                    <Chrome size={20} className="text-[#4285F4]" />
+                    <Globe size={20} className="text-[#4285F4]" />
                     Authorized Google Login
                   </Button>
                 </motion.div>

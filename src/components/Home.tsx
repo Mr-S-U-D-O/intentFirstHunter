@@ -36,7 +36,10 @@ import {
   ShieldCheck,
   MousePointer2,
   User,
-  Sparkles
+  Sparkles,
+  LayoutDashboard,
+  Loader2,
+  Send
 } from 'lucide-react';
 import {
   XAxis,
@@ -239,7 +242,7 @@ export function Home() {
 
       await addDoc(collection(db, 'logs'), {
         type: 'portal_deployed',
-        message: `Client portal deployed for "${clientName}" across ${scraperIds.length} scraper(s)`,
+        message: `Client portal deployed for "${clientName}" across ${scraperIds.length} tracker(s)`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -297,7 +300,7 @@ export function Home() {
   };
 
   const handleDeleteClient = async (clientName: string, scrapersArray: any[]) => {
-    if (!confirm(`Are you sure you want to delete client "${clientName}" and all ${scrapersArray.length} associated scrapers?`)) return;
+    if (!confirm(`Are you sure you want to delete client "${clientName}" and all ${scrapersArray.length} associated trackers?`)) return;
     
     try {
       const batch = writeBatch(db);
@@ -592,7 +595,7 @@ export function Home() {
                 </DropdownMenuLabel>
                 {[
                   { icon: Database, label: "Reset Leads", type: "leads" },
-                  { icon: Zap, label: "Reset Scrapers", type: "scrapers" },
+                  { icon: Zap, label: "Reset Trackers", type: "scrapers" },
                   { icon: Activity, label: "Reset Logs", type: "logs" },
                 ].map(({ icon: Icon, label, type }) => (
                   <DropdownMenuItem

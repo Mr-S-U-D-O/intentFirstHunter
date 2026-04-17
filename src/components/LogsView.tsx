@@ -139,7 +139,7 @@ export function LogsView() {
               <SelectTrigger className="w-[160px] rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-xs font-bold">
               </SelectTrigger>
               <SelectContent className="rounded-xl border-2 border-slate-100 dark:border-slate-800">
-                <SelectItem value="all">All Scrapers</SelectItem>
+                <SelectItem value="all">All Trackers</SelectItem>
                 {scrapers.map(s => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
