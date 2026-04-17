@@ -23,6 +23,7 @@ function isTrackablePointer(pointerType: string) {
   return pointerType !== "touch"
 }
 
+// Default Arrow Cursor
 const DefaultCursorSVG: FC = () => {
   return (
     <svg
@@ -85,8 +86,24 @@ const DefaultCursorSVG: FC = () => {
   )
 }
 
+// Text / Beam Cursor
+const TextCursorSVG: FC = () => {
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <div className="w-[3px] h-6 bg-black rounded-full border border-white/50 shadow-sm" />
+    </div>
+  )
+}
+
+// Pointer / Hand Cursor
+const PointerCursorSVG: FC = () => {
+  return (
+    <div className="w-4 h-4 rounded-full bg-black border-2 border-white shadow-lg scale-125" />
+  )
+}
+
 export function SmoothCursor({
-  cursor = <DefaultCursorSVG />,
+  cursor: customCursor,
   springConfig = {
     damping: 45,
     stiffness: 300,
@@ -101,6 +118,7 @@ export function SmoothCursor({
   const accumulatedRotation = useRef(0)
   const [isEnabled, setIsEnabled] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
+  const [cursorState, setCursorState] = useState<'default' | 'pointer' | 'text'>('default')
 
   const cursorX = useSpring(0, springConfig)
   const cursorY = useSpring(0, springConfig)
@@ -114,6 +132,19 @@ export function SmoothCursor({
     stiffness: 500,
     damping: 35,
   })
+
+  // Global Style to force hide system cursor
+  useEffect(() => {
+    const styleTag = document.createElement('style');
+    styleTag.innerHTML = `
+      * { cursor: none !important; }
+      input, textarea, button, a, [role="button"] { cursor: none !important; }
+    `;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    }
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(DESKTOP_POINTER_QUERY)
@@ -167,6 +198,21 @@ export function SmoothCursor({
       const currentPos = { x: e.clientX, y: e.clientY }
       updateVelocity(currentPos)
 
+      // Detect Cursor State
+      const target = e.target as HTMLElement;
+      if (target) {
+        const computedStyle = window.getComputedStyle(target);
+        const cursorType = computedStyle.cursor;
+        
+        if (cursorType === 'pointer') {
+          setCursorState('pointer');
+        } else if (cursorType === 'text' || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          setCursorState('text');
+        } else {
+          setCursorState('default');
+        }
+      }
+
       const speed = Math.sqrt(
         Math.pow(velocity.current.x, 2) + Math.pow(velocity.current.y, 2)
       )
@@ -212,14 +258,12 @@ export function SmoothCursor({
       })
     }
 
-    document.body.style.cursor = "none"
     window.addEventListener("pointermove", throttledPointerMove, {
       passive: true,
     })
 
     return () => {
       window.removeEventListener("pointermove", throttledPointerMove)
-      document.body.style.cursor = "auto"
       if (rafId) cancelAnimationFrame(rafId)
       if (timeout !== null) {
         clearTimeout(timeout)
@@ -231,6 +275,19 @@ export function SmoothCursor({
     return null
   }
 
+  const renderCursor = () => {
+    if (customCursor) return customCursor;
+    
+    switch (cursorState) {
+      case 'text':
+        return <TextCursorSVG />;
+      case 'pointer':
+        return <PointerCursorSVG />;
+      default:
+        return <DefaultCursorSVG />;
+    }
+  }
+
   return createPortal(
     <motion.div
       style={{
@@ -239,7 +296,7 @@ export function SmoothCursor({
         top: cursorY,
         translateX: "-50%",
         translateY: "-50%",
-        rotate: rotation,
+        rotate: cursorState === 'default' ? rotation : 0, // Only rotate the arrow
         scale: scale,
         zIndex: 100000,
         pointerEvents: "none",
@@ -247,12 +304,15 @@ export function SmoothCursor({
         opacity: isVisible ? 1 : 0,
       }}
       initial={false}
-      animate={{ opacity: isVisible ? 1 : 0 }}
+      animate={{ 
+        opacity: isVisible ? 1 : 0,
+        scale: cursorState === 'pointer' ? 1.2 : 1
+      }}
       transition={{
         duration: 0.15,
       }}
     >
-      {cursor}
+      {renderCursor()}
     </motion.div>,
     document.body
   )
