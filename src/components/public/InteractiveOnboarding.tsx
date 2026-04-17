@@ -224,6 +224,16 @@ export const InteractiveOnboarding: React.FC<InteractiveOnboardingProps> = ({ is
                      className="w-full text-lg leading-relaxed font-medium bg-transparent border-b-2 border-slate-200 outline-none pb-4 focus:border-black transition-colors placeholder-slate-300 resize-none"
                      placeholder="e.g. r/accounting, 'Xero migration', 'NetSuite alternative'"
                    />
+                   
+                   <button 
+                     onClick={() => {
+                        setFormData(prev => ({ ...prev, keywords: 'Not sure' }));
+                        handleNext();
+                     }}
+                     className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-black transition-colors w-max mt-2"
+                   >
+                     I'm not sure, skip this for now
+                   </button>
                  </div>
                )}
 

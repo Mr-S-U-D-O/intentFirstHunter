@@ -73,6 +73,8 @@ export function AddScraperModal({
     clientName?: string;
     clientPhone?: string;
     platform?: string;
+    keyword?: string;
+    idealCustomerProfile?: string;
   }
 }) {
   const { user } = useAuth();
@@ -105,6 +107,8 @@ export function AddScraperModal({
       if (initialData.clientName) setClientName(initialData.clientName);
       if (initialData.clientPhone) setClientPhone(initialData.clientPhone);
       if (initialData.platform) setSelectedPlatforms([initialData.platform]);
+      if (initialData.keyword) setKeyword(initialData.keyword);
+      if (initialData.idealCustomerProfile) setIdealCustomerProfile(initialData.idealCustomerProfile);
     } else if (open) {
       // Reset if no initial data but modal is opening
       // (Optional: you might want to keep previous values or clear them)
