@@ -1,4 +1,5 @@
 import React, { FC, useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { motion, useSpring } from "motion/react"
 
 interface Position {
@@ -88,7 +89,7 @@ export function SmoothCursor({
   cursor = <DefaultCursorSVG />,
   springConfig = {
     damping: 45,
-    stiffness: 400,
+    stiffness: 300,
     mass: 1,
     restDelta: 0.001,
   },
@@ -230,7 +231,7 @@ export function SmoothCursor({
     return null
   }
 
-  return (
+  return createPortal(
     <motion.div
       style={{
         position: "fixed",
@@ -240,7 +241,7 @@ export function SmoothCursor({
         translateY: "-50%",
         rotate: rotation,
         scale: scale,
-        zIndex: 100,
+        zIndex: 100000,
         pointerEvents: "none",
         willChange: "transform",
         opacity: isVisible ? 1 : 0,
@@ -252,6 +253,7 @@ export function SmoothCursor({
       }}
     >
       {cursor}
-    </motion.div>
+    </motion.div>,
+    document.body
   )
 }

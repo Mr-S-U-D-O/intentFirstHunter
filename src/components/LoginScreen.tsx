@@ -69,16 +69,15 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="h-screen w-full bg-white flex overflow-hidden font-sans antialiased text-slate-900 selection:bg-slate-200">
+    <div className="min-h-screen w-full bg-white flex font-sans antialiased text-slate-900 selection:bg-slate-200">
       <motion.div 
         layout
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={`flex w-full h-full p-6 gap-6 ${userType === 'team' ? 'flex-row-reverse' : 'flex-row'}`}
+        className={`flex w-full min-h-screen p-4 md:p-6 gap-6 ${userType === 'team' ? 'flex-row-reverse' : 'flex-row'}`}
       >
         {/* Photographic Side */}
-        <motion.div 
-          layout
-          className="relative flex-1 hidden lg:flex overflow-hidden rounded-[2rem] border-2 border-slate-900"
+        <div 
+          className="relative flex-1 hidden lg:flex sticky top-6 h-[calc(100vh-3rem)] overflow-hidden rounded-[2rem] border-2 border-slate-900"
         >
           <img 
             src={backgroundImageUrl} 
@@ -99,14 +98,14 @@ export function LoginScreen() {
               Global intelligence for high-value growth. Powered by proprietary extraction algorithms.
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Form Side */}
         <motion.div 
           layout
-          className="w-full lg:w-[500px] xl:w-[600px] flex flex-col justify-center px-6 sm:px-12 md:px-20 overflow-y-auto"
+          className="w-full lg:w-[500px] xl:w-[600px] flex flex-col px-6 sm:px-12 md:px-20 py-12"
         >
-          <div className="max-w-md w-full mx-auto">
+          <div className="max-w-md w-full mx-auto my-auto">
             {/* Logo for mobile */}
             <div className="flex lg:hidden items-center gap-2 mb-12">
               <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
