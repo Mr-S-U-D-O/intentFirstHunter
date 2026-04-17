@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Target, ArrowRight, ShieldCheck, Zap, Activity, Users, Database, Plus, Minus } from 'lucide-react';
 import { InteractiveOnboarding } from './InteractiveOnboarding';
 import { AnimatedList } from '../ui/animated-list';
+import { ChatWidget } from './ChatWidget';
 
 // Use a simple Intersection Observer hook for scroll animations
 function useIntersectionObserver(options = {}) {
@@ -178,7 +179,7 @@ export function LandingPage() {
               onClick={() => {
                 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const port = window.location.port ? `:${window.location.port}` : '';
-                window.location.href = isLocal ? `http://app.localhost${port}` : 'https://app.bepreemptly.com';
+                window.location.href = isLocal ? `http://hq.localhost${port}` : 'https://hq.bepreemptly.com';
               }}
               className="hidden md:flex items-center gap-2 bg-white text-black px-5 py-2.5 font-bold text-[10px] tracking-widest uppercase hover:bg-slate-50 border border-slate-200 hover:border-black rounded-lg transition-colors shadow-sm"
             >
@@ -789,6 +790,7 @@ export function LandingPage() {
       </section>
 
       <InteractiveOnboarding isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <ChatWidget />
 
       {/* Footer */}
       <footer className="bg-white border-t-2 border-slate-100 py-12 px-6 text-center">

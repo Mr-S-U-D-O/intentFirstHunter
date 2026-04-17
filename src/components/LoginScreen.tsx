@@ -69,11 +69,11 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-white flex overflow-hidden font-sans antialiased text-slate-900 selection:bg-slate-200">
+    <div className="h-screen w-full bg-white flex overflow-hidden font-sans antialiased text-slate-900 selection:bg-slate-200">
       <motion.div 
         layout
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={`flex w-full min-h-screen p-6 gap-6 ${userType === 'team' ? 'flex-row-reverse' : 'flex-row'}`}
+        className={`flex w-full h-full p-6 gap-6 ${userType === 'team' ? 'flex-row-reverse' : 'flex-row'}`}
       >
         {/* Photographic Side */}
         <motion.div 
@@ -104,7 +104,7 @@ export function LoginScreen() {
         {/* Form Side */}
         <motion.div 
           layout
-          className="w-full lg:w-[500px] xl:w-[600px] flex flex-col justify-center px-6 sm:px-12 md:px-20"
+          className="w-full lg:w-[500px] xl:w-[600px] flex flex-col justify-center px-6 sm:px-12 md:px-20 overflow-y-auto"
         >
           <div className="max-w-md w-full mx-auto">
             {/* Logo for mobile */}
@@ -215,6 +215,11 @@ export function LoginScreen() {
                         </button>
                         <button 
                           type="button"
+                          onClick={() => {
+                            const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
+                            const port = window.location.port ? `:${window.location.port}` : '';
+                            window.location.href = isLocal ? `http://localhost${port}` : 'https://bepreemptly.com';
+                          }}
                           className="text-xs font-bold text-slate-400 hover:text-slate-900 underline decoration-slate-200 underline-offset-4 transition-all"
                         >
                           Don't have an account? Sign Up
