@@ -26,6 +26,7 @@ import {
 import { ConfirmModal } from './ConfirmModal';
 import { writeBatch, doc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SEO } from './SEO';
 
 export function LogsView() {
   const { logs, scrapers } = useData();
@@ -66,8 +67,21 @@ export function LogsView() {
     }
   };
 
+  const getLogLabel = (type: string) => {
+    switch (type) {
+      case 'scraper_run': return 'Tracker Active';
+      case 'lead_found': return 'Growth Feed';
+      case 'scraper_error': return 'System Alert';
+      case 'scraper_created': return 'Tracker Launched';
+      case 'scraper_paused': return 'Tracker Paused';
+      case 'scraper_resumed': return 'Tracker Resumed';
+      default: return type.replace('_', ' ');
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      <SEO title="Logs | Preemptly" />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
           <Button 
@@ -97,7 +111,7 @@ export function LogsView() {
         <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Full Event History</h2>
-            <p className="text-sm text-slate-500">Real-time log of all scraper operations and lead detections</p>
+            <p className="text-sm text-slate-500">Real-time log of visibility trackers and growth identification</p>
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
@@ -111,19 +125,18 @@ export function LogsView() {
                 <SelectValue placeholder="Event Type" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-2 border-slate-100 dark:border-slate-800">
-                <SelectItem value="all">All Events</SelectItem>
-                <SelectItem value="scraper_run">Scraper Runs</SelectItem>
-                <SelectItem value="lead_found">Leads Found</SelectItem>
-                <SelectItem value="scraper_error">Errors</SelectItem>
-                <SelectItem value="scraper_created">Created</SelectItem>
-                <SelectItem value="scraper_paused">Paused</SelectItem>
-                <SelectItem value="scraper_resumed">Resumed</SelectItem>
+                 <SelectItem value="all">All Events</SelectItem>
+                 <SelectItem value="scraper_run">Activity</SelectItem>
+                 <SelectItem value="lead_found">Growth Events</SelectItem>
+                 <SelectItem value="scraper_error">System</SelectItem>
+                 <SelectItem value="scraper_created">Launched</SelectItem>
+                 <SelectItem value="scraper_paused">Paused</SelectItem>
+                 <SelectItem value="scraper_resumed">Resumed</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={scraperFilter} onValueChange={setScraperFilter}>
               <SelectTrigger className="w-[160px] rounded-xl bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 text-xs font-bold">
-                <SelectValue placeholder="Scraper" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-2 border-slate-100 dark:border-slate-800">
                 <SelectItem value="all">All Scrapers</SelectItem>
@@ -179,7 +192,7 @@ export function LogsView() {
                         log.type === 'scraper_error' ? 'bg-red-50 text-red-600' :
                         'bg-slate-100 dark:bg-slate-800 text-slate-500'
                       }`}>
-                        {log.type.replace('_', ' ')}
+                        {getLogLabel(log.type)}
                       </span>
                       {log.scraperId && (
                         <span className="text-[10px] font-medium text-slate-400">

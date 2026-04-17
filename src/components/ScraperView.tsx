@@ -13,6 +13,7 @@ import { useAuth } from './AuthProvider';
 import { ConfirmModal } from './ConfirmModal';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { SEO } from './SEO';
 
 export function ScraperView() {
   const { id } = useParams<{ id: string }>();
@@ -138,7 +139,7 @@ export function ScraperView() {
         type: 'lead_found',
         scraperId: scraper.id,
         scraperName: scraper.name,
-        message: `Intelligence alert pushed to ${scraper.clientName || 'client'} dashboard`,
+        message: `Growth opportunity pushed to ${scraper.clientName || 'client'} portal`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -163,8 +164,9 @@ export function ScraperView() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      <SEO title={`${scraper?.name || 'Scraper'} | Preemptly`} />
       <div className="flex flex-col mb-6">
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 truncate max-w-full">Surveillance / Monitors / {scraper.name}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 truncate max-w-full">Growth Feed / Trackers / {scraper.name}</span>
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex flex-col gap-2 min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight break-words leading-tight">
@@ -255,7 +257,7 @@ export function ScraperView() {
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Intelligence Alerts</p>
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Growth Events</p>
           <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{scraperLeads.length}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-2 border-[#5a8c12] dark:border-[#5a8c12]/50">
@@ -274,7 +276,7 @@ export function ScraperView() {
             </div>
           <p className="text-lg font-bold text-slate-800 dark:text-slate-100">
             {scraper.totalPushedLeads || 0} / {scraper.trialLimit || 10}
-            <span className="text-[10px] text-slate-400 ml-2 font-medium">Leads Pushed</span>
+            <span className="text-[10px] text-slate-400 ml-2 font-medium">Moments Shared</span>
           </p>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
             <div 
@@ -311,8 +313,8 @@ export function ScraperView() {
               <Activity size={18} strokeWidth={2} className="text-[#5a8c12]" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Intelligence Inbox</h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Process new opportunities</p>
+              <h1 className="text-2xl font-black text-slate-800 tracking-tight">Opportunity Feed</h1>
+            <p className="text-sm text-slate-500 font-medium">Monitor conversations where your expertise wins.</p>
             </div>
           </div>
           <div className="relative max-w-sm w-full">
@@ -332,7 +334,7 @@ export function ScraperView() {
                 <CheckCircle2 size={24} className="text-[#5a8c12]" />
              </div>
              <p className="text-sm font-bold">Mailbox Empty!</p>
-             <p className="text-xs text-slate-400">No new leads to process for this scraper.</p>
+             <p className="text-xs text-slate-400">No new leads to process for this tracker.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -379,7 +381,7 @@ export function ScraperView() {
                                 <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#5a8c12]/20 to-[#84b53b]/10 text-[#5a8c12]">
                                   <BrainCircuit size={14} strokeWidth={2.5} />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200">AI Analysis</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-700 dark:text-slate-200">Expertise Strategy</span>
                                 <div className={`ml-auto px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide ${
                                   lead.score >= 8 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                                   lead.score >= 6 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
@@ -504,8 +506,8 @@ export function ScraperView() {
                 <Icons.Zap size={18} className="text-blue-500" />
              </div>
              <div>
-                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Intelligence Dispatch</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Track client engagement & review feedback</p>
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">Growth Dispatch</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Track community engagement & profile visits</p>
              </div>
           </div>
           <div className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full">
@@ -515,7 +517,7 @@ export function ScraperView() {
 
         {sentLeads.length === 0 ? (
           <div className="p-12 text-center text-slate-400 italic text-sm">
-             No leads have been pushed to the client yet.
+             No opportunities have been shared with the portal yet.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -584,8 +586,8 @@ export function ScraperView() {
       <ConfirmModal 
         open={isDeleteModalOpen} 
         onOpenChange={setIsDeleteModalOpen} 
-        title="Delete Monitor"
-        description="Are you sure you want to delete this intelligence monitor? Existing alerts will remain in the system."
+        title="Delete Tracker"
+        description="Are you sure you want to delete this visibility tracker? Community opportunities will remain in the Feed."
         onConfirm={handleDelete}
         confirmText="Delete"
       />

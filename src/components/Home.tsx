@@ -75,6 +75,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { writeBatch, doc, updateDoc, addDoc, collection, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useAuth } from './AuthProvider';
+import { SEO } from './SEO';
 
 // ─────────────────────────────────────────────────────────────
 // Palette
@@ -555,6 +556,7 @@ export function Home() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-16">
+      <SEO title="Dashboard | Preemptly" />
       {/* ── Page Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -562,7 +564,7 @@ export function Home() {
             Overview
           </span>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-0.5">
-            Intelligence Hub
+            Growth Hub
           </h1>
         </div>
         <div className="flex items-center gap-3">
@@ -653,7 +655,7 @@ export function Home() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         <KpiCard
           icon={Activity}
-          label="Intelligence Alerts"
+          label="Opportunities Found"
           value={leads.length}
           iconBg="bg-[#5a8c12]/10"
           iconColor="text-[#5a8c12]"
@@ -662,33 +664,33 @@ export function Home() {
         />
         <KpiCard
           icon={Star}
-          label="Avg Intent Score"
+          label="Avg Expertise Score"
           value={`${stats.avgScore}/10`}
           iconBg="bg-amber-500/10"
           iconColor="text-amber-500"
           badge={`${stats.highIntent} elite`}
           badgeColor="bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"
-          sub={`${stats.highIntent} leads scored 8+`}
+          sub={`${stats.highIntent} moments scored 8+`}
         />
         <KpiCard
           icon={CheckCircle2}
-          label="Sent to Clients"
+          label="Evidence Shared"
           value={stats.sentLeads}
           iconBg="bg-blue-500/10"
           iconColor="text-blue-500"
           badge={`${stats.conversionRate}% rate`}
           badgeColor="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
-          sub={`${stats.newLeads} new awaiting action`}
+          sub={`${stats.newLeads} pending review`}
         />
         <KpiCard
           icon={Zap}
-          label="Active Monitors"
+          label="Active Trackers"
           value={`${activeScrapers}/${scrapers.length}`}
           iconBg="bg-[#5a8c12]/10"
           iconColor="text-[#5a8c12]"
           badge={
             failedJobs24h > 0
-              ? `${failedJobs24h} error${failedJobs24h > 1 ? "s" : ""}`
+              ? `${failedJobs24h} alert${failedJobs24h > 1 ? "s" : ""}`
               : "Healthy"
           }
           badgeColor={
@@ -704,8 +706,8 @@ export function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ChartCard
           className="lg:col-span-2"
-          title="Intelligence Stream Velocity"
-          subtitle="Real-time alert frequency and monitoring health"
+          title="Growth Momentum"
+          subtitle="Real-time visibility frequency and community health"
           action={
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               {(["7d", "30d", "all"] as const).map((r) => (
@@ -804,7 +806,7 @@ export function Home() {
                   <Area
                     type="monotone"
                     dataKey="total"
-                    name="Total Leads"
+                    name="Total Opportunities"
                     stroke={BRAND}
                     strokeWidth={2.5}
                     fill="url(#grad-total)"
@@ -816,7 +818,7 @@ export function Home() {
         </ChartCard>
 
         {/* Platform breakdown donut */}
-        <ChartCard title="Intelligence Sources" subtitle="Platform distribution across monitors">
+        <ChartCard title="Visibility Sources" subtitle="Platform distribution across trackers">
           {!mounted || stats.platformData.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-slate-400 text-sm italic">
               No platform data yet
@@ -874,8 +876,8 @@ export function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Score distribution */}
         <ChartCard
-          title="Lead Quality Distribution"
-          subtitle="Volume of leads across intent score brackets"
+          title="Expertise Score Distribution"
+          subtitle="Volume of opportunities across expertise brackets"
         >
           {!mounted ? (
             <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
@@ -925,8 +927,8 @@ export function Home() {
 
         {/* Outreach status funnel */}
         <ChartCard
-          title="Outreach Status Funnel"
-          subtitle="Lead lifecycle from discovery to delivery"
+          title="Growth Funnel"
+          subtitle="Opportunity lifecycle from discovery to delivery"
         >
           <div className="space-y-4 mt-2">
             {[
@@ -1013,8 +1015,8 @@ export function Home() {
         {/* Scraper performance leaderboard */}
         <ChartCard
           className="lg:col-span-2"
-          title="Scraper Performance Leaderboard"
-          subtitle="Ranked by total leads found — error state shown in red"
+          title="Tracker Performance Leaderboard"
+          subtitle="Ranked by total moments found — error state shown in red"
         >
           {!mounted ? (
             <div className="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
@@ -1096,8 +1098,8 @@ export function Home() {
 
         {/* Top targets bar */}
         <ChartCard
-          title="Top Targets"
-          subtitle="Locations generating the most leads"
+          title="High-Intent Communities"
+          subtitle="Communities generating the most growth"
         >
           {!mounted || stats.topTargetsData.length === 0 ? (
             <div className="h-48 flex items-center justify-center text-slate-400 text-sm italic">
@@ -1145,8 +1147,8 @@ export function Home() {
         {/* Client delivery */}
         <ChartCard
           className="lg:col-span-2"
-          title="Client Management & Portals"
-          subtitle="Deploy dashboards, manage trials, and monitor client engagement"
+          title="Partner Growth Hub"
+          subtitle="Manage growth portals and expertise strategies"
         >
           {stats.clientStatsArray.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-sm italic border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
@@ -1213,21 +1215,21 @@ export function Home() {
                       {/* KPI Grid for Client */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bots Running</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Trackers</p>
                           <div className="flex items-center gap-2">
                              <Zap size={14} className="text-[#5a8c12]" />
                              <span className="text-lg font-black text-slate-900 dark:text-white">{client.scraperIds.length}</span>
                           </div>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Leads Found</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Opportunities</p>
                           <div className="flex items-center gap-2">
                              <Database size={14} className="text-blue-500" />
                              <span className="text-lg font-black text-slate-900 dark:text-white">{client.found}</span>
                           </div>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Leads Sent</p>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sent</p>
                           <div className="flex items-center gap-2">
                              <Rocket size={14} className="text-amber-500" />
                              <span className="text-lg font-black text-slate-900 dark:text-white">{client.totalPushedLeads}</span>
@@ -1434,7 +1436,7 @@ export function Home() {
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-              All Leads
+              Opportunity Archive
             </h2>
             <p className="text-sm text-slate-500">
               Manage and export every high-intent opportunity discovered

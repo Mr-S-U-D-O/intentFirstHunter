@@ -58,7 +58,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
         type: 'lead_found',
         scraperId: scraper.id,
         scraperName: scraper.name,
-        message: `Lead pushed to ${scraper.clientName || 'client'} dashboard`,
+        message: `Opportunity shared with ${scraper.clientName || 'client'} portal`,
         createdAt: serverTimestamp(),
         userId: user?.uid
       });
@@ -128,7 +128,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
   if (leads.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500">
-        No leads found yet. Add an active scraper and wait for it to find matches.
+        No moments found yet. Add an active tracker and wait for growth opportunities.
       </div>
     );
   }
@@ -139,7 +139,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input 
-            placeholder="Search leads by title, subreddit, or keyword..." 
+            placeholder="Search moments by content, brand, or community..." 
             className="pl-9 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl h-10 focus-visible:ring-[#5a8c12] dark:text-slate-100"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -166,7 +166,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
             <div className="flex items-center">Author <SortIcon column="postAuthor" /></div>
           </TableHead>
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('createdAt')}>
-            <div className="flex items-center">Reaction Gap <SortIcon column="createdAt" /></div>
+            <div className="flex items-center">Visibility Speed <SortIcon column="createdAt" /></div>
           </TableHead>
           <TableHead className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" onClick={() => handleSort('status')}>
             <div className="flex items-center">Status <SortIcon column="status" /></div>
@@ -406,7 +406,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
                   <button
                     onClick={() => handleDeleteLead(lead.id)}
                     className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
-                    title="Delete Lead"
+                    title="Delete Moment"
                   >
                     <Trash2 size={16} strokeWidth={1.5} />
                   </button>
@@ -423,7 +423,7 @@ export function LeadsTable({ leads, scrapers }: { leads: Lead[], scrapers: Scrap
     {totalPages > 1 && (
       <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-900/30">
         <div className="text-xs text-slate-500 font-medium">
-          Showing <span className="text-slate-900 dark:text-slate-300">{(currentPage - 1) * pageSize + 1}</span> to <span className="text-slate-900 dark:text-slate-300">{Math.min(currentPage * pageSize, filteredAndSortedLeads.length)}</span> of <span className="text-slate-900 dark:text-slate-300">{filteredAndSortedLeads.length}</span> leads
+          Showing <span className="text-slate-900 dark:text-slate-300">{(currentPage - 1) * pageSize + 1}</span> to <span className="text-slate-900 dark:text-slate-300">{Math.min(currentPage * pageSize, filteredAndSortedLeads.length)}</span> of <span className="text-slate-900 dark:text-slate-300">{filteredAndSortedLeads.length}</span> opportunities
         </div>
         <div className="flex items-center gap-2">
           <Button

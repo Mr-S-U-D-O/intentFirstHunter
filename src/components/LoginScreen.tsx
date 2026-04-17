@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Lock, ArrowRight, Chrome, ShieldCheck, Globe, Users, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { SEO } from './SEO';
 
 type UserType = 'visitor' | 'team';
 type AuthView = 'login' | 'forgot-password';
@@ -70,6 +71,7 @@ export function LoginScreen() {
 
   return (
     <div className="min-h-screen w-full bg-white flex font-sans antialiased text-slate-900 selection:bg-slate-200">
+      <SEO title="Login | Preemptly" />
       <motion.div 
         layout
         transition={{ type: "spring", stiffness: 300, damping: 30 }}

@@ -16,17 +16,17 @@ interface QA {
 const KNOWLEDGE_BASE: Record<string, QA> = {
   "What is Preemptly?": {
     q: "What is Preemptly?",
-    a: "Preemptly is an Intelligence Engine that monitors niche communities (like Reddit, Twitter, and specialized forums) to find people expressing high-intent pain points. We alert you the moment someone needs exactly what you sell.",
+    a: "Preemptly is a Visibility Platform that monitors niche communities (like Reddit, Twitter, and specialized forums) to find high-impact conversations. We identify the exact moments where your expertise drives growth.",
     followUps: ["How does it work?", "Is there a free trial?"]
   },
   "How does it work?": {
     q: "How does it work?",
-    a: "We use proprietary AI models that don't just look for keywords, but understand context and emotion. When the AI detects a 'Match 8+' (high relevance), it flags the lead, provides a strategic rationale, and drafts a context-aware response for you.",
+    a: "We use proprietary AI models that don't just look for keywords, but understand context and emotion. When the AI detects a High-Impact Opportunity, it provides an expertise strategy and drafts a response to demonstrate your value.",
     followUps: ["How accurate is the AI?", "Which platforms?"]
   },
   "Is there a free trial?": {
     q: "Is there a free trial?",
-    a: "Yes! We offer a '10-Intercept' free trial. We'll deliver your first 10 hyper-qualified leads for free so you can see the quality yourself. No credit card required.",
+    a: "Yes! We offer a '10-Moment' free trial. We'll find your first 10 High-Growth opportunities for free so you can see the impact yourself. No credit card required.",
     followUps: ["How do I get started?", "How much does it cost?"]
   },
   "How much does it cost?": {
@@ -41,57 +41,57 @@ const KNOWLEDGE_BASE: Record<string, QA> = {
   },
   "Is this just social listening?": {
     q: "Is this just social listening?",
-    a: "No. Social listening gives you a megaphone (volume). Preemptly gives you a sniper rifle (intent). We filter out 99% of the noise to give you the 1% that are ready to buy.",
-    followUps: ["How accurate is the AI?", "Strategic Rationale?"]
+    a: "No. Social listening gives you a megaphone (volume). Preemptly gives you the stage (visibility). We find the specific conversations where your expertise converts whole rooms at once.",
+    followUps: ["How accurate is the AI?", "Expertise Strategy?"]
   },
   "How accurate is the AI?": {
     q: "How accurate is the AI?",
-    a: "Extremely. Our models are trained specifically on 'intent signals.' Every lead comes with an Intent Score (1-10) and a clear explanation of why it was flagged.",
-    followUps: ["Strategic Rationale?", "What is Preemptly?"]
+    a: "Extremely. Our models are trained specifically on 'expertise signals.' Every opportunity comes with a Visibility Score (1-10) and a clear explanation of how it was identified.",
+    followUps: ["Expertise Strategy?", "What is Preemptly?"]
   },
-  "Strategic Rationale?": {
-    q: "Strategic Rationale?",
-    a: "It's an AI-generated explanation of why a prospect is a perfect fit. It helps you understand their pain point instantly so you can approach them from a place of value, not just a pitch.",
-    followUps: ["Do you automate DMs?", "Is there a free trial?"]
+  "Expertise Strategy?": {
+    q: "Expertise Strategy?",
+    a: "It's an AI-generated blueprint of how to prove your expertise in a specific thread. It helps you understand the pain point instantly so you can show up as a leader, not just a salesperson.",
+    followUps: ["Do you automate responses?", "Is there a free trial?"]
   },
-  "Do you automate DMs?": {
-    q: "Do you automate DMs?",
-    a: "No. We automate discovery and intelligence, but we believe authentic human connection is key. We provide the intelligence, but you (or your team) hit the send button. This keeps your brand professional and your accounts safe.",
+  "Do you automate responses?": {
+    q: "Do you automate responses?",
+    a: "No. We automate discovery and strategy, but we believe authentic human connection is key. We provide the blueprint, but you hit the send button. This keeps your brand professional and elite.",
     followUps: ["Is this ethical?", "Who is it for?"]
   },
   "Is this ethical?": {
     q: "Is this ethical?",
     a: "Absolutely. Preemptly is a listening tool, similar to a Google Alert but far more intelligent. You are simply responding to public discussions where users are asking for help or expressing frustration.",
-    followUps: ["Is there a free trial?", "Strategic Rationale?"]
+    followUps: ["Is there a free trial?", "Expertise Strategy?"]
   },
   "Who is it for?": {
     q: "Who is it for?",
-    a: "Elite agencies, B2B SaaS founders, and high-ticket service providers. Basically, anyone who needs high-intent leads but is tired of cold-calling and low-quality data lists.",
+    a: "Elite agencies, B2B SaaS founders, and high-ticket service providers. Basically, anyone who needs organic growth but is tired of cold outreach and low-quality data.",
     followUps: ["How much does it cost?", "How do I get started?"]
   },
   "How do I get started?": {
     q: "How do I get started?",
-    a: "Click 'Start Free Trial' on our homepage. The onboarding takes less than 60 seconds, and our AI will start hunting for your first batch of leads immediately.",
+    a: "Click 'Start Free Trial' on our homepage. The onboarding takes less than 60 seconds, and our AI will start identifying growth opportunities for you immediately.",
     followUps: ["Is there a free trial?", "Can I connect my CRM?"]
   },
   "Can I connect my CRM?": {
     q: "Can I connect my CRM?",
-    a: "CRM integrations (HubSpot, Salesforce, etc.) are at the top of our road map. For now, you can manage everything from our streamlined Command Center or export leads manually.",
+    a: "CRM integrations (HubSpot, Salesforce, etc.) are at the top of our road map. For now, you can manage everything from our streamlined Growth Hub or export manually.",
     followUps: ["What is Preemptly?", "How much does it cost?"]
   },
-  "What is a 'Match 8+'?": {
-    q: "What is a 'Match 8+'?",
-    a: "An 8+ Match is our AI's way of saying 'This person is experiencing significant pain right now.' We only notify you when the intent score is 8 or higher, ensuring you don't waste time on lukewarm leads.",
-    followUps: ["How accurate is the AI?", "Strategic Rationale?"]
+  "What is a High Impact Moment?": {
+    q: "What is a High Impact Moment?",
+    a: "A 'High Impact Moment' is our AI's way of saying 'This person is experiencing significant pain right now.' We only notify you when the growth potential is high, ensuring you don't waste time on noise.",
+    followUps: ["How accurate is the AI?", "Expertise Strategy?"]
   },
   "How do I respond?": {
     q: "How do I respond?",
     a: "We provide a 'Draft Response' based on the post's context. You can copy this, tweak it to match your voice, and post it as a comment or DM on the respective platform. We recommend being helpful first, pitching second.",
-    followUps: ["Do you automate DMs?", "Strategic Rationale?"]
+    followUps: ["Do you automate responses?", "Expertise Strategy?"]
   },
-  "What is the Command Center?": {
-    q: "What is the Command Center?",
-    a: "It's your dashboard where all high-intent leads are centralized. From here, you can see the post, the user, the AI reasoning, and your draft responses. It keeps your lead generation organized and fast.",
+  "What is the Growth Hub?": {
+    q: "What is the Growth Hub?",
+    a: "It's your workspace where all high-growth opportunities are centralized. From here, you can see the thread, the user context, the Expertise Strategy, and your draft responses. It keeps your brand growth organized and fast.",
     followUps: ["Can I connect my CRM?", "How does it work?"]
   },
   "Is it local-business friendly?": {
@@ -106,12 +106,12 @@ const KNOWLEDGE_BASE: Record<string, QA> = {
   },
   "How long is onboarding?": {
     q: "How long is onboarding?",
-    a: "Onboarding takes less than 60 seconds. You tell us your niche, your keywords, and your value proposition. Our AI takes it from there and starts 'hunting' across the web instantly.",
+    a: "Onboarding takes less than 60 seconds. You tell us your niche, your expertise, and your value proposition. Our AI takes it from there and starts monitoring growth conversations for you instantly.",
     followUps: ["How do I get started?", "What is Preemptly?"]
   },
   "Are leads exclusive?": {
     q: "Are leads exclusive?",
-    a: "Yes. While multiple people might monitor the same keywords, we prioritize lead delivery to ensure you have a 'first-mover advantage.' We focus on finding 'hidden' leads that others aren't seeing.",
+    a: "Yes. While multiple people might monitor the same topics, we prioritize delivery to ensure you have a 'first-expert advantage.' We focus on finding 'hidden' conversations that others aren't seeing.",
     followUps: ["Is this just social listening?", "What is a 'Match 8+'?"]
   },
   "Support other languages?": {
@@ -119,10 +119,10 @@ const KNOWLEDGE_BASE: Record<string, QA> = {
     a: "We currently focus on English-speaking communities as they represent the largest volume of intent signals. Multi-language support is in our R&D phase.",
     followUps: ["Which platforms?", "Who is it for?"]
   },
-  "What is an 'Intercept'?": {
-    q: "What is an 'Intercept'?",
-    a: "An intercept is a successful identification of a lead. It means our AI has found a high-intent post, analyzed it, scored it, and delivered it to your dashboard with a strategic rationale.",
-    followUps: ["How many intercepts?", "Is there a free trial?"]
+  "What is an 'Opportunity'?": {
+    q: "What is an 'Opportunity'?",
+    a: "An opportunity is a successful identification of a conversation where you can win. It means our AI has found a high-impact post, analyzed it, and delivered it to your dashboard with an Expertise Strategy.",
+    followUps: ["How many opportunities?", "Is there a free trial?"]
   },
   "Can I cancel anytime?": {
     q: "Can I cancel anytime?",
@@ -131,8 +131,8 @@ const KNOWLEDGE_BASE: Record<string, QA> = {
   },
   "Is my data secure?": {
     q: "Is my data secure?",
-    a: "Completely. We use bank-grade encryption and secure Cloudflare-protected infrastructure to ensure your 'Hunts' and lead data remain private and protected.",
-    followUps: ["What is the Command Center?", "Is this ethical?"]
+    a: "Completely. We use bank-grade encryption and secure Cloudflare-protected infrastructure to ensure your strategies and growth data remain private and protected.",
+    followUps: ["What is the Growth Hub?", "Is this ethical?"]
   },
   "Affiliate program?": {
     q: "Affiliate program?",
@@ -141,8 +141,8 @@ const KNOWLEDGE_BASE: Record<string, QA> = {
   },
   "Change keywords later?": {
     q: "Change keywords later?",
-    a: "Of course. You can refine your 'Hunts' at any time. In fact, our AI will often suggest better keywords based on the leads it's already finding for you.",
-    followUps: ["Strategic Rationale?", "How does it work?"]
+    a: "Of course. You can refine your 'Trackers' at any time. In fact, our AI will often suggest better keywords based on the opportunities it's already finding for you.",
+    followUps: ["Expertise Strategy?", "How does it work?"]
   }
 };
 
@@ -151,7 +151,7 @@ const INITIAL_SUGGESTIONS = ["What is Preemptly?", "How does it work?"];
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', type: 'bot', text: "Welcome to Preemptly! I'm here to help you understand how we find high-intent leads for your business. What would you like to know?" }
+    { id: '1', type: 'bot', text: "Welcome to Preemptly! I'm here to help you understand how we find the conversations where your expertise drives organic growth. What would you like to know?" }
   ]);
   const [suggestions, setSuggestions] = useState<string[]>(INITIAL_SUGGESTIONS);
   const [isTyping, setIsTyping] = useState(false);
@@ -212,7 +212,7 @@ export function ChatWidget() {
                 <span className="text-white font-black text-sm tracking-tight">Preemptly Intelligence</span>
                 <div className="flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 bg-[#5a8c12] rounded-full animate-pulse" />
-                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Hunter</span>
+                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Presence</span>
                 </div>
               </div>
             </div>

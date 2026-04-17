@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Target, Search, MoreHorizontal, User, Mail, MessageCircle, ExternalLink, Calendar, CheckCircle2, Users } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SEO } from './SEO';
 
 interface BetaApplicant {
   id: string;
@@ -58,6 +59,7 @@ export function CRMView() {
 
   return (
     <div className="flex-1 overflow-auto bg-[#FAFAFA] min-h-screen">
+      <SEO title="CRM | Preemptly" />
       <div className="max-w-7xl mx-auto p-4 md:p-8">
         
         {/* Header */}

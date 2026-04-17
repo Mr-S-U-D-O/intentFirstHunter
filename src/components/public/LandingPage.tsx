@@ -3,6 +3,7 @@ import { Target, ArrowRight, ShieldCheck, Zap, Activity, Users, Database, Plus, 
 import { InteractiveOnboarding } from './InteractiveOnboarding';
 import { AnimatedList } from '../ui/animated-list';
 import { ChatWidget } from './ChatWidget';
+import { SEO } from '../SEO';
 
 // Use a simple Intersection Observer hook for scroll animations
 function useIntersectionObserver(options = {}) {
@@ -141,6 +142,26 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans selection:bg-[#5a8c12] selection:text-white overflow-x-hidden">
+      <SEO 
+        title="Preemptly | Scale Your Brand Through Public Proof" 
+        description="Build organic presence. Preemptly finds the exact public conversations where your expertise drives growth."
+      />
+
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Preemptly",
+          "operatingSystem": "Web",
+          "applicationCategory": "BusinessApplication",
+          "offers": {
+            "@type": "Offer",
+            "price": "500.00",
+            "priceCurrency": "ZAR"
+          },
+          "description": "Visibility platform that identifies high-impact conversations where expertise drives organic business growth."
+        })}
+      </script>
       
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-slate-200 shadow-sm transition-all">
@@ -158,7 +179,7 @@ export function LandingPage() {
                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
                className="text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-black transition-colors"
              >
-                The Engine
+                The Growth Feed
              </button>
              <button 
                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
@@ -208,8 +229,8 @@ export function LandingPage() {
               exactly when they <span className="font-bold text-black border-b-2 border-[#5a8c12]">need it</span>.
             </h1>
             
-            <p className="mt-5 text-base md:text-lg text-slate-600 font-light leading-relaxed max-w-md">
-              We monitor niche community discussions and alert you the moment a prospect expresses a deep frustration. Don't chase. Just be there with the solution.
+            <p className="mt-5 text-base md:text-lg text-slate-600 font-light leading-relaxed max-w-xl">
+              Don't pitch. Just be the expert. We locate the conversations where your proof-of-expertise converts entire communities at once.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-3 w-full">
@@ -277,13 +298,13 @@ export function LandingPage() {
                 <div className="flex items-center justify-between mb-3 border-b-2 border-slate-100 pb-3">
                    <div className="flex items-center gap-2">
                      <Zap className="text-[#5a8c12] w-5 h-5 fill-[#5a8c12]" />
-                     <span className="text-xs font-black uppercase tracking-widest text-[#5a8c12]">10/10 Match</span>
+                     <span className="text-xs font-black uppercase tracking-widest text-[#5a8c12]">Peak Visibility</span>
                    </div>
-                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-sm">Intercepted</span>
+                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-sm">Actionable</span>
                 </div>
                 <p className="text-[13px] text-slate-700 font-medium leading-relaxed">
-                  <span className="font-bold text-black border-b border-[#5a8c12] inline-block mb-1">Strategic Rationale:</span><br/>
-                  The user is expressing acute frustration with their current provider and actively seeking highly-specialized B2B expertise. Immediate intervention recommended.
+                  <span className="font-bold text-black border-b border-[#5a8c12] inline-block mb-1">Expertise Strategy:</span><br/>
+                  The community is looking for a leader. Step in with a high-value breakdown of how to solve this pain point to convert the thread into an organic growth loop.
                 </p>
              </div>
           </div>
@@ -310,10 +331,10 @@ export function LandingPage() {
           
           <div className="text-center max-w-2xl mx-auto mb-10">
             <h2 className="text-3xl md:text-4xl font-extralight tracking-tighter text-black mb-4">
-               Beyond Social Listening. <span className="font-bold">Growth Intelligence.</span>
+               Presence That Converts. <span className="font-bold">Organic Growth.</span>
             </h2>
             <p className="text-slate-500 font-light leading-relaxed">
-               Sending cold DMs and praying for a reply damages your brand. Your massive, hidden audience is already complaining online. We find those exact conversations.
+               Generic social tools give you noise. We find the specific stages where your expertise creates a magnetic effect for your entire brand.
             </p>
           </div>
 
@@ -328,9 +349,9 @@ export function LandingPage() {
                          <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-3">
                             <div className="flex items-center gap-1.5">
                                <Zap className="text-[#5a8c12] w-4 h-4 fill-[#5a8c12]" />
-                               <span className="text-xs font-black uppercase tracking-widest text-[#5a8c12]">10/10 Match</span>
+                               <span className="text-xs font-black uppercase tracking-widest text-[#5a8c12]">High Impact</span>
                             </div>
-                            <span className="text-[9px] font-bold text-[#5a8c12] bg-[#5a8c12]/10 uppercase tracking-widest px-2 py-1 rounded-sm border border-[#5a8c12]/20">Intercepted</span>
+                            <span className="text-[9px] font-bold text-[#5a8c12] bg-[#5a8c12]/10 uppercase tracking-widest px-2 py-1 rounded-sm border border-[#5a8c12]/20">Growth Stage</span>
                          </div>
                          <div className="flex items-center gap-3 mb-3">
                             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
@@ -352,9 +373,9 @@ export function LandingPage() {
                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#5a8c12]/5 blur-3xl rounded-full" />
                 </div>
                 <div className="p-8 pt-6">
-                   <h3 className="font-bold text-lg text-slate-900 mb-2 text-left">Laser-Focused Intent</h3>
+                   <h3 className="font-bold text-lg text-slate-900 mb-2 text-left">Strategic Visibility</h3>
                    <p className="text-sm text-slate-500 leading-relaxed font-light text-left">
-                     Stop sifting through junk data. Our AI analyzes the context and emotion behind every post, scoring each lead from 1 to 10 so you only engage with red-hot prospects.
+                     Stop fighting for scraps. Our AI identifies the exact conversations where your proof-of-value converts entire audiences into followers and fans.
                    </p>
                 </div>
              </div>
@@ -362,9 +383,9 @@ export function LandingPage() {
              {/* Card 2: Command Center */}
              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden group hover:shadow-md transition-shadow">
                 <div className="p-8 pb-6 text-left">
-                  <h3 className="font-bold text-lg text-slate-900 mb-2">Intuitive workflow</h3>
+                  <h3 className="font-bold text-lg text-slate-900 mb-2">Growth Hub</h3>
                   <p className="text-sm text-slate-500 leading-relaxed font-light max-w-sm">
-                    Manage your intercepts seamlessly. Our intuitive command center centralizes high-intent leads without complex setups.
+                    Manage your opportunities seamlessly. Use our professional hub to centralize high-growth conversations without the noise.
                   </p>
                 </div>
                 <div className="flex-1 bg-[#FAFAFA] rounded-t-2xl mx-8 border border-b-0 border-slate-200 overflow-hidden relative min-h-[220px]">
@@ -375,7 +396,7 @@ export function LandingPage() {
                          <div className="w-6 h-6 rounded-md border border-slate-200 flex items-center justify-center bg-slate-50">
                             <div className="w-3 h-3 bg-black rounded-[3px]"/>
                          </div>
-                         <div className="text-[10px] font-bold text-slate-400">Command Center</div>
+                         <div className="text-[10px] font-bold text-slate-400">Growth Hub</div>
                       </div>
 
                       <div className="grid grid-cols-[1fr_2fr] gap-4">
@@ -390,7 +411,7 @@ export function LandingPage() {
                          </div>
                          {/* Main Graph Area */}
                          <div className="bg-white rounded-lg border border-slate-100 shadow-sm p-5 relative overflow-hidden">
-                            <div className="text-xs font-bold text-slate-800 mb-1">Total Intercepts</div>
+                            <div className="text-xs font-bold text-slate-800 mb-1">Total Opportunities</div>
                             <div className="text-2xl font-black text-black tracking-tighter mb-4">242,000</div>
                             <svg className="w-full h-16 text-blue-500 overflow-visible" viewBox="0 0 200 40">
                                <path d="M0 40 Q 40 20, 80 35 T 160 10 L 200 20" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
@@ -459,9 +480,9 @@ export function LandingPage() {
              {/* Card 4: Automated Context */}
              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden group hover:shadow-md transition-shadow">
                 <div className="p-8 pb-6 text-left">
-                  <h3 className="font-bold text-lg text-slate-900 mb-2">Automated Context</h3>
+                  <h3 className="font-bold text-lg text-slate-900 mb-2">Evidence-First Strategy</h3>
                   <p className="text-sm text-slate-500 leading-relaxed font-light max-w-sm">
-                    We don't just deliver leads. Preemptly generates conversion-optimized rationale based on the exact complaint.
+                    Preemptly identifies the exact conversations where your expertise scales your brand and wins the room.
                   </p>
                 </div>
                 <div className="flex-1 bg-[#FAFAFA] rounded-t-2xl mx-8 border border-b-0 border-slate-200 overflow-hidden relative min-h-[220px]">
@@ -471,7 +492,7 @@ export function LandingPage() {
                          
                          {/* Leads list column */}
                          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3">
-                            <div className="text-xs font-bold text-slate-800 mb-2">Latest Intercepts</div>
+                            <div className="text-xs font-bold text-slate-800 mb-2">Latest Opportunities</div>
                             
                             <div className="flex items-center justify-between py-2 border-b border-slate-50">
                                <div className="flex items-center gap-2">
@@ -479,8 +500,8 @@ export function LandingPage() {
                                      <span className="text-[10px] text-slate-500">U</span>
                                   </div>
                                   <div className="flex flex-col">
-                                     <span className="text-[10px] font-bold text-slate-700">LostFounder22</span>
-                                     <span className="text-[8px] text-slate-400">"Looking for PR..."</span>
+                                     <span className="text-[10px] font-bold text-slate-700">Founder_Stuck</span>
+                                     <span className="text-[8px] text-slate-400">"Needs advice on PR..."</span>
                                   </div>
                                </div>
                                <Zap className="w-3 h-3 text-[#5a8c12] fill-[#5a8c12]" />
@@ -541,10 +562,10 @@ export function LandingPage() {
               <div className="flex flex-col">
                 <div className="mb-12">
                   <h2 className="text-4xl md:text-5xl font-extralight tracking-tighter text-black leading-tight">
-                    The <span className="font-bold border-b-2 border-[#5a8c12]">Intelligence Engine.</span>
+                    The <span className="font-bold border-b-2 border-[#5a8c12]">Presence Blueprint.</span>
                   </h2>
                   <p className="mt-6 text-lg text-slate-500 font-light leading-relaxed">
-                    Most tools give you a megaphone. Preemptly gives you a sniper rifle. Drag the slider to see how AI intent scoring filters the noise and brings matching leads to you.
+                    Broad tools give you volume. Preemptly gives you the stage. Use our AI visibility filter to find the exact moments where your answers scale your brand.
                   </p>
                 </div>
 
@@ -570,7 +591,7 @@ export function LandingPage() {
                   </div>
                   <div className="text-[10px] flex items-center gap-2 font-bold tracking-widest uppercase text-[#5a8c12] mt-2">
                     <Activity size={12} />
-                    Current AI Intent Score
+                    Growth Visibility Potential
                   </div>
                 </div>
               </div>
@@ -604,13 +625,13 @@ export function LandingPage() {
              {/* Right Column: Copy */}
              <div className="order-1 md:order-2 flex flex-col items-start text-left">
                <div className="flex items-center gap-2 px-3 py-1 border-2 border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-widest mb-6 bg-white rounded-lg">
-                  <Activity size={12} className="text-[#5a8c12]" /> Command Center
+                  <Activity size={12} className="text-[#5a8c12]" /> Growth Hub
                </div>
                <h2 className="text-4xl font-extralight tracking-tighter mb-5 text-black leading-tight">
-                 Your Private <span className="font-bold border-b-2 border-slate-200">Hub.</span>
+                 The <span className="font-bold border-b-2 border-slate-200">Stage.</span>
                </h2>
                <p className="text-lg text-slate-600 font-light leading-relaxed mb-8">
-                 Review AI-scored frustrations, approve Strategic Rationales, and generate context-aware, helpful comments with one click—all in a pristine, focused environment.
+                 Review growth opportunities, approve expertise strategies, and generate proof-of-value responses with one click—all in a professional workspace.
                </p>
                <button className="bg-white text-black hover:bg-slate-50 transition-colors px-6 py-3.5 text-xs font-bold uppercase tracking-widest border-2 border-slate-200 hover:border-black flex items-center justify-center gap-2 rounded-xl">
                  Explore Dashboard <ArrowRight size={14} />
@@ -629,24 +650,24 @@ export function LandingPage() {
         <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
            <div>
              <h2 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight">
-               Reddit Pro gives you a megaphone.<br/>
-               <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-500 font-extralight">Preemptly gives you a sniper rifle.</span>
+               Megaphones create noise.<br/>
+               <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-500 font-extralight">Expertise creates gravity.</span>
              </h2>     
            </div>
            
            <div className="flex flex-col gap-6">
              <div className="pl-5 border-l-3 border-slate-200">
-                <h4 className="text-lg font-bold mb-1.5 text-slate-900">The Megaphone</h4>
+                <h3 className="text-lg font-bold mb-1.5 text-slate-900">The Noise</h3>
                 <p className="text-slate-600 font-light leading-relaxed text-sm">
-                  Reddit Pro will tell you that 5,000 people are talking about "SaaS". It gives you raw, unfiltered social listening data. You still have to sift through the noise manually.
+                  Most platforms tell you that 5,000 people are talking about "SaaS". They give you raw, unfiltered data. You still have to yell over the crowd to be heard.
                 </p>
              </div>
              <div className="pl-5 border-l-3 border-black">
-                <h4 className="text-lg font-bold mb-1.5 flex items-center gap-2 text-slate-900">
-                  <Target size={18} className="text-[#5a8c12]" /> The Sniper Rifle
-                </h4>
+                <h3 className="text-lg font-bold mb-1.5 flex items-center gap-2 text-slate-900">
+                  <Target size={18} className="text-[#5a8c12]" /> The Stage
+                </h3>
                 <p className="text-slate-600 font-light leading-relaxed text-sm">
-                  Preemptly doesn't care about volume. Our AI scores sentiment and specific pain points. We filter out the 4,990 useless comments and deliver the 10 people screaming for exactly what you sell.
+                  Preemptly finds the individual who needs exactly what you sell. By being the one to show up with proof-of-value, you convert the whole thread at once.
                 </p>
              </div>
            </div>
@@ -698,7 +719,7 @@ export function LandingPage() {
 
                <div className="relative z-20">
                  <div className="text-[10px] font-bold tracking-widest uppercase text-[#5a8c12] mb-4 flex items-center gap-2">
-                    <Target size={12} /> Phase 2: Unlimited Access
+                    <Target size={12} /> Phase 2: Scale Your Presence
                  </div>
                  <div className="flex items-baseline gap-3 mb-6">
                     <div className="text-5xl font-black text-black tracking-tighter">R500</div>
@@ -706,7 +727,7 @@ export function LandingPage() {
                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest line-through decoration-slate-300 ml-2">R2500</div>
                  </div>
                  <p className="text-slate-600 font-light leading-relaxed mb-10 max-w-sm">
-                   Once you see the value, upgrade to unlock unlimited lead intercepts, comprehensive AI rationale generation, and priority access to our upcoming CRM integrations.
+                   Once you see the evidence, upgrade to unlock unlimited opportunities, advanced expertise strategies, and priority access to our upcoming CRM integrations.
                  </p>
                </div>
                <button 
@@ -721,12 +742,12 @@ export function LandingPage() {
             <div className="group relative bg-white p-10 md:p-14 md:col-span-2 flex flex-col md:flex-row md:items-center justify-between gap-10 overflow-hidden">
                <div className="absolute inset-0 shadow-[inset_0_0_50px_rgba(90,140,18,0)] group-hover:shadow-[inset_0_0_50px_rgba(90,140,18,0.12)] transition-shadow duration-700 pointer-events-none z-10" />
                
-               <div className="relative z-20 flex-1">
-                 <h4 className="text-lg font-bold text-slate-900 mb-2">Lifetime Pricing Lock</h4>
-                 <p className="text-slate-600 font-light leading-relaxed max-w-3xl">
-                   By boarding during the closed beta application phase, your rate gets permanently locked at R500/mo. When self-serve launches at R2,500/mo, you will retain your priority discount forever.
-                 </p>
-               </div>
+                <div className="relative z-20 flex-1">
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">Lifetime Pricing Lock</h3>
+                  <p className="text-slate-600 font-light leading-relaxed max-w-3xl">
+                    By boarding during the closed beta application phase, your rate gets permanently locked at R500/mo. When self-serve launches at R2,500/mo, you will retain your priority discount forever.
+                  </p>
+                </div>
 
                <div className="relative z-20 flex-shrink-0">
                   <button 

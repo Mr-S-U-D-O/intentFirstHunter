@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles } from 'lucide-react';
 import { LiveTimestamp } from './LiveTimestamp';
 import { ClientSetupModal } from './ClientSetupModal';
+import { SEO } from './SEO';
 
 interface PortalLead {
   id: string;
@@ -169,6 +170,7 @@ export function ClientPortal() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <SEO title={`${data?.clientName || 'Portal'} | Preemptly`} />
       {/* Setup Modal */}
       {!data.setupCompleted && data.scrapers && (
         <ClientSetupModal 
