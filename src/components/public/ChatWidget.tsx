@@ -205,8 +205,8 @@ export function ChatWidget() {
           {/* Header */}
           <div className="bg-black p-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#5a8c12] rounded-xl flex items-center justify-center shadow-lg shadow-[#5a8c12]/20">
-                <Sparkles className="text-white w-5 h-5" />
+              <div className="w-10 h-10 bg-[#5a8c12] rounded-xl flex items-center justify-center shadow-lg shadow-[#5a8c12]/20 overflow-hidden">
+                <img src="/preemptly-mascot.png" alt="Owl Logo" className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col">
                 <span className="text-white font-black text-sm tracking-tight">Preemptly Intelligence</span>

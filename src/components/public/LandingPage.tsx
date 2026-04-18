@@ -320,14 +320,24 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col items-center">
           
           {/* Header Area */}
-          <div className="w-full max-w-4xl text-center flex flex-col items-center mb-20">
-            <div className="flex items-center gap-2 px-4 py-1.5 border-2 border-[#5a8c12]/20 text-[#5a8c12] text-[10px] font-black uppercase tracking-widest mb-8 bg-white rounded-full shadow-sm">
+          <div className="w-full max-w-4xl text-center flex flex-col items-center mb-20 relative">
+            
+            {/* Flying Mascot */}
+            <div className="absolute hidden md:block -top-28 -right-16 lg:-right-64 z-20 pointer-events-none drop-shadow-[0_25px_30px_rgba(90,140,18,0.15)]">
+               <img 
+                 src="/preemptly-mascot-flying.png" 
+                 alt="Preemptly Flying Mascot" 
+                 className="w-[280px] lg:w-[400px]" 
+               />
+            </div>
+
+            <div className="flex items-center gap-2 px-4 py-1.5 border-2 border-[#5a8c12]/20 text-[#5a8c12] text-[10px] font-black uppercase tracking-widest mb-8 bg-white rounded-full shadow-sm relative z-30">
                 <Activity size={14} className="animate-pulse" /> Growth Hub
             </div>
-            <h2 className="text-5xl md:text-7xl font-extralight tracking-tighter mb-8 text-black leading-tight">
+            <h2 className="text-5xl md:text-7xl font-extralight tracking-tighter mb-8 text-black leading-tight relative z-30">
               The <span className="font-bold bg-gradient-to-br from-black to-slate-600 bg-clip-text text-transparent">Stage.</span>
             </h2>
-            <p className="text-xl md:text-2xl text-slate-600 font-light leading-relaxed mb-12 max-w-3xl">
+            <p className="text-xl md:text-2xl text-slate-600 font-light leading-relaxed mb-12 max-w-3xl relative z-30">
               Review growth opportunities, approve expertise strategies, and generate proof-of-value responses with one click—all in a professional workspace.
             </p>
             <button className="group bg-black text-white hover:bg-[#5a8c12] transition-all duration-500 px-10 py-5 text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-4 rounded-2xl shadow-2xl shadow-black/20 hover:scale-105">
@@ -724,13 +734,23 @@ export function LandingPage() {
         className={`bg-[#FAFAFA] py-32 px-6 transition-all duration-1000 transform ${pricingInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
       >
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-16 md:mb-24">
             <h2 className="text-3xl md:text-4xl font-extralight tracking-tighter text-black">Transparent Pricing. <span className="font-bold">Beta Phase.</span></h2>
             <p className="mt-4 text-slate-500 font-light max-w-xl mx-auto">Because our pipeline is heavily curated, we are currently onboarding strictly via application to ensure our AI computing power is dedicated to active hunters.</p>
           </div>
 
-          {/* Bento Wrapper - Gap creates the thin inner lines */}
-          <div className="grid grid-cols-1 md:grid-cols-2 rounded-3xl overflow-hidden border border-slate-200 bg-slate-200 gap-px shadow-xl shadow-black/5">
+          {/* Pricing Grid Container with Mascot */}
+          <div className="relative mt-8 md:mt-24">
+            <div className="absolute bottom-full translate-y-[40px] md:translate-y-[45px] left-4 md:left-16 z-20 pointer-events-none">
+              <img 
+                src="/preemptly-mascot-full.png" 
+                alt="Preemptly Mascot" 
+                className="w-[200px] md:w-[320px] drop-shadow-[0_15px_15px_rgba(0,0,0,0.25)]" 
+              />
+            </div>
+            
+            {/* Bento Wrapper - Gap creates the thin inner lines */}
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 rounded-3xl overflow-hidden border border-slate-200 bg-slate-200 gap-px shadow-xl shadow-black/5">
             
             {/* Box 1: Free Trial */}
             <div className="group relative bg-white p-10 md:p-14 flex flex-col justify-between overflow-hidden">
@@ -802,6 +822,7 @@ export function LandingPage() {
                </div>
             </div>
 
+          </div>
           </div>
         </div>
       </section>
