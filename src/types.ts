@@ -66,6 +66,7 @@ export interface Lead {
   pushedToPortal?: boolean;
   clientViewCount?: number;
   clientFeedback?: string;
+  engagementOutcome?: 'engaged' | 'meeting_booked' | 'not_interested' | 'none';
   
   // Snapshotted Context used for AI generation
   clientBusiness?: string;

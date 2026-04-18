@@ -20,6 +20,7 @@ interface PortalLead {
   createdAt: string;
   clientViewCount: number;
   clientFeedback: string;
+  engagementOutcome?: string;
 }
 
 interface PortalData {
@@ -50,6 +51,7 @@ export function ClientPortal() {
   const [aiComments, setAiComments] = useState<Record<string, string>>({});
   const [showAiModal, setShowAiModal] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [updatingOutcome, setUpdatingOutcome] = useState<string | null>(null);
 
   const fetchPortal = useCallback(async () => {
     try {
@@ -93,6 +95,26 @@ export function ClientPortal() {
       setTimeout(() => setFeedbackSent(s => ({ ...s, [leadId]: false })), 3000);
     } catch {
       // Silent fail
+    }
+  };
+
+  const handleOutcomeUpdate = async (leadId: string, outcome: string) => {
+    setUpdatingOutcome(leadId);
+    try {
+      await fetch(`/api/portal/${token}/outcome/${leadId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ outcome }),
+      });
+      setData(prev => prev ? {
+        ...prev,
+        leads: prev.leads.map(l => l.id === leadId ? { ...l, engagementOutcome: outcome } : l)
+      } : null);
+      toast('Engagement updated.');
+    } catch {
+      toast('Failed to update engagement. Please try again.', 'error');
+    } finally {
+      setUpdatingOutcome(null);
     }
   };
 
@@ -436,6 +458,46 @@ export function ClientPortal() {
                         </button>
                       </div>
                     </div>
+                    
+                    {/* Engagement Tracker */}
+                    <div className="bg-slate-50 rounded-xl p-3 mt-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          Engagement Tracking
+                        </p>
+                        {updatingOutcome === lead.id && (
+                          <div className="w-3 h-3 border-2 border-[#5a8c12]/30 border-t-[#5a8c12] rounded-full animate-spin" />
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => handleOutcomeUpdate(lead.id, 'engaged')}
+                          className={`flex items-center gap-1 justify-center text-[9px] font-bold uppercase tracking-widest py-1.5 px-1 rounded-lg transition-colors border ${lead.engagementOutcome === 'engaged' ? 'bg-[#5a8c12] text-white border-[#5a8c12]' : 'bg-white text-slate-500 border-slate-200 hover:border-[#5a8c12]/50'}`}
+                        >
+                          <MessageCircle size={10} />
+                          Engaged
+                        </button>
+                        <button
+                          onClick={() => handleOutcomeUpdate(lead.id, 'meeting_booked')}
+                          className={`flex items-center gap-1 justify-center text-[9px] font-bold uppercase tracking-widest py-1.5 px-1 rounded-lg transition-colors border ${lead.engagementOutcome === 'meeting_booked' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-500/50'}`}
+                        >
+                          <CheckCircle size={10} />
+                          Booked
+                        </button>
+                        <button
+                          onClick={() => handleOutcomeUpdate(lead.id, 'not_interested')}
+                          className={`text-[9px] font-bold uppercase tracking-widest py-1.5 px-1 rounded-lg transition-colors border ${lead.engagementOutcome === 'not_interested' ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'}`}
+                        >
+                          Not Interested
+                        </button>
+                        <button
+                          onClick={() => handleOutcomeUpdate(lead.id, 'none')}
+                          className={`text-[9px] font-bold uppercase tracking-widest py-1.5 px-1 rounded-lg transition-colors border ${lead.engagementOutcome === 'none' || !lead.engagementOutcome ? 'bg-slate-200 text-slate-600 border-slate-200' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'}`}
+                        >
+                          None
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -449,6 +511,7 @@ export function ClientPortal() {
                   <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
                   <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Match</th>
                   <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Opportunity</th>
+                  <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                   <th className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                 </tr>
               </thead>
@@ -474,6 +537,37 @@ export function ClientPortal() {
                           <p className="text-sm font-bold text-slate-800 line-clamp-1 mb-0.5">{lead.postTitle}</p>
                           <p className="text-[11px] text-slate-500 line-clamp-1 italic">"{lead.reason}"</p>
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {!isBlurred ? (
+                          <div className="relative group">
+                            <select
+                              value={lead.engagementOutcome || 'none'}
+                              onChange={(e) => handleOutcomeUpdate(lead.id, e.target.value)}
+                              className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1.5 rounded-lg border appearance-none pr-6 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#5a8c12]/20 transition-colors ${
+                                lead.engagementOutcome === 'engaged' ? 'bg-[#5a8c12]/10 text-[#5a8c12] border-[#5a8c12]/30' :
+                                lead.engagementOutcome === 'meeting_booked' ? 'bg-indigo-50 text-indigo-600 border-indigo-200' :
+                                lead.engagementOutcome === 'not_interested' ? 'bg-slate-100 text-slate-600 border-slate-300' :
+                                'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                              }`}
+                            >
+                              <option value="none">Status: None</option>
+                              <option value="engaged">Engaged</option>
+                              <option value="meeting_booked">Booked</option>
+                              <option value="not_interested">Not Interested</option>
+                            </select>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                              <ChevronDown size={10} />
+                            </div>
+                            {updatingOutcome === lead.id && (
+                              <div className="absolute -right-4 top-1/2 -translate-y-1/2">
+                                <div className="w-3 h-3 border-2 border-[#5a8c12]/30 border-t-[#5a8c12] rounded-full animate-spin" />
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-full h-8 bg-slate-100 rounded-lg blur-sm" />
+                        )}
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">

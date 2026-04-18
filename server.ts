@@ -395,6 +395,7 @@ async function startServer() {
           createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
           clientViewCount: data.clientViewCount || 0,
           clientFeedback: data.clientFeedback || '',
+          engagementOutcome: data.engagementOutcome || 'none',
         };
       });
 
@@ -642,6 +643,40 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       await logSystemError("portal_feedback", "Feedback error", { error: error.message, stack: error.stack, token, leadId });
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/portal/:token/outcome/:leadId - Submit engagement outcome
+  app.post("/api/portal/:token/outcome/:leadId", express.json(), async (req, res) => {
+    const { token, leadId } = req.params;
+    try {
+      const { outcome } = req.body;
+
+      if (!outcome || typeof outcome !== 'string') {
+        return res.status(400).json({ error: "Invalid outcome" });
+      }
+
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      const scraperIds = scrapersSnap.docs.map((d: any) => d.id);
+
+      const leadRef = adminDb.collection('leads').doc(leadId);
+      const leadSnap = await leadRef.get();
+      if (!leadSnap.exists || !scraperIds.includes(leadSnap.data().scraperId)) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      await leadRef.update({ engagementOutcome: outcome });
+      res.json({ success: true });
+    } catch (error: any) {
+      await logSystemError("portal_outcome", "Outcome tracking error", { error: error.message, stack: error.stack, token, leadId });
       res.status(500).json({ error: "Internal server error" });
     }
   });
