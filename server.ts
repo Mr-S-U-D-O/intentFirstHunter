@@ -107,6 +107,24 @@ if (!apiKey) {
 }
 const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-to-prevent-crash' });
 
+async function logSystemError(type: string, message: string, details: any = {}, userId?: string) {
+  console.error(`[Error][${type}] ${message}`, details);
+  try {
+    if (adminDb) {
+      await adminDb.collection('logs').add({
+        type: `system_error_${type}`,
+        message,
+        details: typeof details === 'object' ? JSON.stringify(details, null, 2) : String(details),
+        createdAt: FieldValue.serverTimestamp(),
+        userId: userId || 'system',
+        path: details.path || null
+      });
+    }
+  } catch (e: any) {
+    console.error("[Logging Failed] Could not write to logs collection:", e.message);
+  }
+}
+
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 8080;
@@ -114,6 +132,17 @@ async function startServer() {
   // API routes FIRST
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // POST /api/report-error - Frontend error reporting
+  app.post("/api/report-error", express.json(), async (req, res) => {
+    try {
+      const { error, stack, context, userId } = req.body;
+      await logSystemError("frontend", error, { stack, ...context }, userId);
+      res.json({ success: true });
+    } catch {
+      res.status(500).end();
+    }
   });
 
   app.post("/api/admin/update-rules", async (req, res) => {
@@ -145,7 +174,7 @@ async function startServer() {
       
       res.json({ success: true });
     } catch (error: any) {
-      console.error("Error updating rules details:", error);
+      await logSystemError("admin_rules", "Failed to update rules", { error: error.message, stack: error.stack });
       res.status(500).json({ error: "Failed to update rules", details: error.message });
     }
   });
@@ -323,8 +352,8 @@ async function startServer() {
   
   // GET /api/portal/:token - Fetch scraper info + pushed leads
   app.get("/api/portal/:token", async (req, res) => {
+    const { token } = req.params;
     try {
-      const { token } = req.params;
       if (!token || token.length < 10) {
         return res.status(400).json({ error: "Invalid portal token" });
       }
@@ -397,15 +426,15 @@ async function startServer() {
         }))
       });
     } catch (error: any) {
-      console.error("[Portal API] Error fetching portal:", error);
+      await logSystemError("portal_fetch", "Failed to fetch portal", { error: error.message, stack: error.stack, token: token });
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
   // POST /api/portal/:token/generate-comment/:leadId - On-demand AI comment generation
   app.post("/api/portal/:token/generate-comment/:leadId", express.json(), async (req, res) => {
+    const { token, leadId } = req.params;
     try {
-      const { token, leadId } = req.params;
 
       // 1. Verify Portal Token
       const scrapersSnap = await adminDb.collection('scrapers')
@@ -463,15 +492,58 @@ async function startServer() {
       res.json({ comment: comment.trim() });
 
     } catch (error: any) {
-      console.error("[Portal API] Comment generation failed:", error);
+      await logSystemError("portal_ai_comment", "Comment generation failed", { error: error.message, stack: error.stack, token, leadId });
       res.status(500).json({ error: "Failed to generate AI comment" });
+    }
+  });
+
+  // POST /api/portal/:token/setup - Client completes portal setup
+  app.post("/api/portal/:token/setup", express.json(), async (req, res) => {
+    const { token } = req.params;
+    try {
+      const { 
+        isSoloFreelancer,
+        clientBusiness,
+        clientSells,
+        clientDoes,
+        clientTone 
+      } = req.body;
+
+      // 1. Verify Portal Token and get scrapers
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      // 2. Batch update all scrapers for this client
+      const batch = adminDb.batch();
+      scrapersSnap.docs.forEach((doc: any) => {
+        batch.update(doc.ref, {
+          isSoloFreelancer,
+          clientBusiness,
+          clientSells,
+          clientDoes,
+          clientTone,
+          portalSetupCompleted: true
+        });
+      });
+
+      await batch.commit();
+
+      res.json({ success: true });
+    } catch (error: any) {
+      await logSystemError("portal_setup", "Setup failed", { error: error.message, stack: error.stack, token });
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
   // POST /api/portal/:token/delete/:leadId - Client deletes a lead
   app.post("/api/portal/:token/delete/:leadId", async (req, res) => {
+    const { token, leadId } = req.params;
     try {
-      const { token, leadId } = req.params;
 
       const scrapersSnap = await adminDb.collection('scrapers')
         .where('portalToken', '==', token)
@@ -488,16 +560,16 @@ async function startServer() {
       });
 
       res.json({ success: true });
-    } catch (error) {
-      console.error("[Portal API] Error deleting lead:", error);
+    } catch (error: any) {
+      await logSystemError("portal_delete_lead", "Error deleting lead", { error: error.message, stack: error.stack, token, leadId });
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
   // POST /api/portal/:token/click/:leadId - Track lead click
   app.post("/api/portal/:token/click/:leadId", async (req, res) => {
+    const { token, leadId } = req.params;
     try {
-      const { token, leadId } = req.params;
 
       // Verify token maps to a valid scraper
       const scrapersSnap = await adminDb.collection('scrapers')
@@ -535,15 +607,15 @@ async function startServer() {
 
       res.json({ success: true });
     } catch (error: any) {
-      console.error("[Portal API] Click tracking error:", error);
+      await logSystemError("portal_click_tracking", "Click tracking error", { error: error.message, stack: error.stack, token, leadId });
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
   // POST /api/portal/:token/feedback/:leadId - Submit feedback
   app.post("/api/portal/:token/feedback/:leadId", express.json(), async (req, res) => {
+    const { token, leadId } = req.params;
     try {
-      const { token, leadId } = req.params;
       const { feedback } = req.body;
 
       if (!feedback || typeof feedback !== 'string' || feedback.length > 500) {
@@ -569,7 +641,7 @@ async function startServer() {
       await leadRef.update({ clientFeedback: feedback });
       res.json({ success: true });
     } catch (error: any) {
-      console.error("[Portal API] Feedback error:", error);
+      await logSystemError("portal_feedback", "Feedback error", { error: error.message, stack: error.stack, token, leadId });
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -1154,6 +1226,7 @@ async function executeScraper(scraper: any) {
     }
 
   } catch (error: any) {
+    await logSystemError("scraper_execution", `Scraper ${scraper.name} execution failed`, { error: error.message, stack: error.stack, scraperId: scraper.id });
     const errorMessage = error instanceof Error ? error.message : String(error);
     const newConsecutiveErrors = (scraper.consecutiveErrors || 0) + 1;
     console.error(`[Background Engine] Error running scraper ${scraper.name} (failure #${newConsecutiveErrors}):`, errorMessage);

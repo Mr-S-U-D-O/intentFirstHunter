@@ -880,12 +880,12 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="bg-white border-t-2 border-slate-100 py-12 px-6 text-center">
          <div className="flex items-center justify-center gap-3 mb-6 opacity-30">
-            <div className="w-8 h-8 bg-black flex items-center justify-center rounded">
-              <Target className="text-white w-4 h-4" />
+            <div className="w-8 h-8 flex items-center justify-center rounded overflow-hidden">
+               <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
             </div>
             <span className="font-black text-xl tracking-tighter">Preemptly</span>
           </div>
-          <p className="text-slate-400 text-sm font-light">© 2026 Preemptly Growth Intelligence. All rights reserved.</p>
+          <p className="text-slate-400 text-sm font-light">© 2026 Preemptly Growth Visibility. All rights reserved.</p>
       </footer>
 
     </div>

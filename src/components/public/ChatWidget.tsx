@@ -36,7 +36,7 @@ const KNOWLEDGE_BASE: Record<string, QA> = {
   },
   "Which platforms?": {
     q: "Which platforms?",
-    a: "We currently monitor Reddit, Twitter, and several specialized industry forums. We are constantly expanding our 'Intelligence Network' to include new high-intent sources.",
+    a: "We currently monitor Reddit, Twitter, and several specialized industry forums. We are constantly expanding our 'Visibility Network' to include new high-intent sources.",
     followUps: ["Is this just social listening?", "Do you automate DMs?"]
   },
   "Is this just social listening?": {
@@ -209,7 +209,7 @@ export function ChatWidget() {
                 <img src="/preemptly-mascot.png" alt="Owl Logo" className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col">
-                <span className="text-white font-black text-sm tracking-tight">Preemptly Intelligence</span>
+                <span className="text-white font-black text-sm tracking-tight">Preemptly Visibility</span>
                 <div className="flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 bg-[#5a8c12] rounded-full animate-pulse" />
                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Presence</span>

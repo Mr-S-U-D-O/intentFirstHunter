@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { X, Sparkles, User, Briefcase, MessageSquare, ArrowRight, Check } from 'lucide-react';
+import { Sparkles, User, Briefcase, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { doc, updateDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase';
 import { Scraper } from '../types';
+import { reportError } from '../utils/logger';
 
 interface ClientSetupModalProps {
   scrapers: Scraper[];
+  token: string;
   onComplete: () => void;
 }
 
-export function ClientSetupModal({ scrapers, onComplete }: ClientSetupModalProps) {
+export function ClientSetupModal({ scrapers, token, onComplete }: ClientSetupModalProps) {
   const [step, setStep] = useState(1);
   const [isSolo, setIsSolo] = useState<string>('true');
   const [formData, setFormData] = useState({
@@ -26,23 +26,28 @@ export function ClientSetupModal({ scrapers, onComplete }: ClientSetupModalProps
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSave = async () => {
+    if (!token) return;
     setIsSubmitting(true);
     try {
-      const batch = writeBatch(db);
-      scrapers.forEach(s => {
-        batch.update(doc(db, 'scrapers', s.id), {
+      const res = await fetch(`/api/portal/${token}/setup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           isSoloFreelancer: isSolo === 'true',
           clientBusiness: isSolo === 'true' ? formData.clientName : formData.businessName,
           clientSells: formData.clientSells,
           clientDoes: formData.clientDoes,
-          clientTone: formData.clientTone,
-          portalSetupCompleted: true
-        });
+          clientTone: formData.clientTone
+        })
       });
-      await batch.commit();
+
+      if (!res.ok) throw new Error('Failed to save setup');
+      
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Setup failed:", error);
+      reportError(error, { component: 'ClientSetupModal', action: 'handleSave', token });
+      alert("Failed to complete setup. Please check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }

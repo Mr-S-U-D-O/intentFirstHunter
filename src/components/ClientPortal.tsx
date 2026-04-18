@@ -5,6 +5,7 @@ import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, Chevr
 import { LiveTimestamp } from './LiveTimestamp';
 import { ClientSetupModal } from './ClientSetupModal';
 import { SEO } from './SEO';
+import { reportError } from '../utils/logger';
 
 interface PortalLead {
   id: string;
@@ -59,6 +60,7 @@ export function ClientPortal() {
       setData(json);
     } catch (err: any) {
       setError(err.message);
+      reportError(err, { component: 'ClientPortal', action: 'fetchPortal', token });
     } finally {
       setLoading(false);
     }
@@ -122,6 +124,7 @@ export function ClientPortal() {
       setShowAiModal(leadId);
     } catch (err: any) {
       alert(err.message || 'AI Generation failed. Please try again.');
+      reportError(err, { component: 'ClientPortal', action: 'handleGenerateComment', token, leadId });
     } finally {
       setGeneratingComment(null);
     }
@@ -175,6 +178,7 @@ export function ClientPortal() {
       {!data.setupCompleted && data.scrapers && (
         <ClientSetupModal 
           scrapers={data.scrapers} 
+          token={token || ''}
           onComplete={() => setData(prev => prev ? { ...prev, setupCompleted: true } : null)}
         />
       )}
@@ -184,15 +188,15 @@ export function ClientPortal() {
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#5a8c12] flex items-center justify-center shadow-md">
-                <Zap size={18} className="text-white" />
+              <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-md">
+                <img src="/preemptly-mascot.png" alt="Preemptly" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-base font-black text-slate-900 leading-tight">
                   {data.clientName}'s Matches
                 </h1>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Intelligence Portal
+                  Growth Visibility Portal
                 </p>
               </div>
             </div>
@@ -572,7 +576,7 @@ export function ClientPortal() {
       <footer className="border-t border-slate-100 bg-white mt-8">
         <div className="max-w-2xl mx-auto px-4 py-4 text-center">
           <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-            Leads powered by Preemptly • AI-Driven Lead Generation
+            Growth Visibility powered by Preemptly • Expertise Extraction
           </p>
         </div>
       </footer>

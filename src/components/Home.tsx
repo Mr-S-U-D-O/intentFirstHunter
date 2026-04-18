@@ -131,6 +131,33 @@ const DarkTooltip = ({ active, payload, label }: any) => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// Scrollable Legend for many scrapers
+// ─────────────────────────────────────────────────────────────
+const ScrollableLegend = (props: any) => {
+  const { payload } = props;
+  if (!payload || payload.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 mt-6 max-h-[90px] overflow-y-auto px-4 py-2 custom-scrollbar">
+      {payload.map((entry: any, index: number) => (
+        <div key={`item-${index}`} className="flex items-center gap-2 flex-shrink-0 min-w-[140px] max-w-[180px]">
+          <div 
+            className="w-2 h-2 rounded-full flex-shrink-0" 
+            style={{ backgroundColor: entry.color }}
+          />
+          <span 
+            className="text-[10px] font-bold text-slate-500 truncate" 
+            title={entry.value}
+          >
+            {entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
 // Metric KPI card
 // ─────────────────────────────────────────────────────────────
 function KpiCard({
@@ -783,16 +810,7 @@ export function Home() {
                   allowDecimals={false}
                 />
                 <RechartsTooltip content={<DarkTooltip />} />
-                <Legend
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ paddingTop: "16px" }}
-                  formatter={(v) => (
-                    <span className="text-[10px] font-bold text-slate-500">
-                      {v}
-                    </span>
-                  )}
-                />
+                <Legend content={<ScrollableLegend />} />
                 {scrapers.length > 1 ? (
                   scrapers.map((s, i) => (
                     <Area

@@ -287,7 +287,7 @@ export function CRMView() {
           <div className="relative w-full max-w-md bg-white h-full border-l shadow-2xl flex flex-col animate-in slide-in-from-right duration-500">
             
             <div className="p-6 border-b flex items-center justify-between">
-              <h2 className="text-xl font-black tracking-tight">Lead Intelligence</h2>
+              <h2 className="text-xl font-black tracking-tight">Growth Visibility Profile</h2>
               <button onClick={() => setSelectedApplicant(null)} className="text-slate-400 hover:text-black font-bold text-xs uppercase tracking-widest">Close</button>
             </div>
 

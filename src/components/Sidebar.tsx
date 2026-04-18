@@ -85,7 +85,7 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
           </div>
           <div className="flex flex-col">
             <span>Preemptly</span>
-            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-widest -mt-1">Real-time Intelligence</span>
+            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-widest -mt-1">Real-time Visibility</span>
           </div>
         </div>
       </div>
@@ -146,7 +146,7 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
 
         <Collapsible open={isOpen} onOpenChange={setIsOpen} className="space-y-2">
           <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-2 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-            Intelligence Monitors
+            Visibility Trackers
             {isOpen ? <ChevronDown size={14} strokeWidth={1.5} /> : <ChevronRight size={14} strokeWidth={1.5} />}
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-2">

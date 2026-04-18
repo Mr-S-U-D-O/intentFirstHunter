@@ -36,7 +36,7 @@ export function AccessDenied({ onSignOut, userEmail }: AccessDeniedProps) {
                 Access Restricted
               </h1>
               <p className="text-slate-500 dark:text-slate-400 font-medium">
-                The account <span className="text-slate-900 dark:text-slate-200 font-bold underline decoration-red-500/30">{userEmail}</span> is not authorized to access this intelligence dashboard.
+                The account <span className="text-slate-900 dark:text-slate-200 font-bold underline decoration-red-500/30">{userEmail}</span> is not authorized to access this visibility dashboard.
               </p>
             </div>
 
@@ -50,8 +50,8 @@ export function AccessDenied({ onSignOut, userEmail }: AccessDeniedProps) {
               
               <div className="space-y-3">
                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 transition-all hover:border-[#5a8c12]/30">
-                  <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm text-[#5a8c12]">
-                    <Target size={18} />
+                  <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center shadow-sm overflow-hidden border border-slate-100 dark:border-slate-800">
+                    <img src="/preemptly-mascot.png" alt="Owner" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-tight">Owner</p>
