@@ -5,7 +5,7 @@ import { InteractiveOnboarding } from './InteractiveOnboarding';
 import { AnimatedList } from '../ui/animated-list';
 import { ChatWidget } from './ChatWidget';
 import { SEO } from '../SEO';
-import { getPSEODataBySlug, NicheData } from '../../data/pseo';
+import { getPSEODataBySlug, pseoData, NicheData } from '../../data/pseo';
 
 // Use a simple Intersection Observer hook for scroll animations
 function useIntersectionObserver(options = {}) {
