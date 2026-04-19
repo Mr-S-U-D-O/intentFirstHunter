@@ -34,7 +34,13 @@ export default function App() {
   if (isPublic && !isPortal && !isHQ) {
     return (
       <GlobalProviders>
-        <LandingPage />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/intercept/:slug" element={<LandingPage />} />
+            <Route path="*" element={<LandingPage />} />
+          </Routes>
+        </BrowserRouter>
       </GlobalProviders>
     );
   }

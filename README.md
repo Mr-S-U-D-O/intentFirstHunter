@@ -129,6 +129,12 @@ Within the **Client Engagement Portal**, the user can:
 -   **Database**: Google Firebase (Firestore + Authentication).
 -   **RSS Logic**: `rss-parser`, `node-fetch`.
 
+## 🕸️ Programmatic SEO (pSEO) Matrix
+Preemptly utilizes a highly scalable Programmatic SEO engine to capture high-intent organic search traffic.
+- **The Router Engine**: We dynamically intersect `<Route path="/intercept/:slug" />` with our unified `<LandingPage />`.
+- **The Data Matrix**: The `src/data/pseo.ts` file acts as the "Brain". It calculates high-value intersections (e.g., Target: *SaaS Founders*, Platform: *Reddit*, Pain Point: *Low Conversion*).
+- **The Crawler Bait**: During every `npm run build`, our custom `generate-sitemap.ts` Node script injects these combinations into `sitemap.xml`, artificially scaling our organic footprint with zero duplicate code.
+
 ---
 
 ## 📦 Getting Started

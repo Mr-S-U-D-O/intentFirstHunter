@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, limit, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Scraper, Lead, SystemLog } from '../types';
 import { useAuth } from './AuthProvider';
@@ -32,12 +32,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       handleFirestoreError(error, OperationType.LIST, 'scrapers');
     });
 
-    const leadsQuery = query(collection(db, 'leads'), where('userId', '==', user.uid));
+    const leadsQuery = query(
+      collection(db, 'leads'), 
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(250)
+    );
     const unsubscribeLeads = onSnapshot(leadsQuery, (snapshot) => {
       const data: Lead[] = [];
       snapshot.forEach((doc) => {
         data.push({ id: doc.id, ...doc.data() } as Lead);
       });
+      // Sorting is still fine here, but now it's correctly fetching the latest 250 leads
       data.sort((a, b) => {
         const timeA = a.createdAt?.toMillis?.() || 0;
         const timeB = b.createdAt?.toMillis?.() || 0;
@@ -46,9 +52,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setLeads(data);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'leads');
+      console.warn("If you see an index error above, click the provided link to build the composite index.");
     });
 
-    const logsQuery = query(collection(db, 'logs'), where('userId', '==', user.uid));
+    const logsQuery = query(
+      collection(db, 'logs'), 
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(250)
+    );
     const unsubscribeLogs = onSnapshot(logsQuery, (snapshot) => {
       const data: SystemLog[] = [];
       snapshot.forEach((doc) => {
@@ -62,6 +74,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setLogs(data);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'logs');
+      console.warn("If you see an index error above, click the provided link to build the composite index.");
     });
 
     return () => {

@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Target, ArrowRight, ShieldCheck, Zap, Activity, Users, Database, Plus, Minus } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import { InteractiveOnboarding } from './InteractiveOnboarding';
 import { AnimatedList } from '../ui/animated-list';
 import { ChatWidget } from './ChatWidget';
 import { SEO } from '../SEO';
+import { getPSEODataBySlug, NicheData } from '../../data/pseo';
 
 // Use a simple Intersection Observer hook for scroll animations
 function useIntersectionObserver(options = {}) {
@@ -50,18 +52,21 @@ const FAQItem: React.FC<{ question: string, answer: string }> = ({ question, ans
   );
 };
 
-const FAQS = [
-  { q: "How exactly does Preemptly find these leads?", a: "We use proprietary AI models to constantly monitor highly specific, niche communities looking for people expressing extreme frustration or asking highly specific questions related to your niche. We filter out the noise and only alert you to high-intent signals." },
-  { q: "Is this just another scraping tool?", a: "Not at all. Most scraping tools give you a megaphone by throwing raw data at you. Preemptly only alerts you when our AI identifies a user who is frustrated and ready for a solution. It's a sniper rifle, not a megaphone." },
-  { q: "Are the leads guaranteed to convert?", a: "We guarantee you are introduced to individuals experiencing the exact pain point you solve, right when they are asking about it. You still have to bring your expertise to the table, but you're no longer cold-calling." },
-  { q: "How is the 10-Intercept Free Trial measured?", a: "Every time our AI scans a community and flags a post as a 'Match 8+' (highly relevant lead), that counts as 1 intercept. The trial ends when we have delivered 10 actionable leads to your dashboard." },
-  { q: "Can I connect this to my current CRM?", a: "Currently, Preemptly acts as a standalone Command Center to keep your data pristine. You can review, approve, and respond directly from our system or export them. Direct CRM integrations are on our immediate roadmap." },
-  { q: "Will I get banned from platforms like Reddit for using this?", a: "Absolutely not. Preemptly is a listening tool. When we find a lead, you or your team manually respond using your own authentic accounts. We don't automate spam; we automate discovery." },
-  { q: "How do you generate the Strategic Rationale?", a: "Our AI doesn't just read keywords; it analyzes the context and emotion behind a post. It then suggests exactly why this person is a fit and drafts a context-aware, helpful comment for you to edit and send." },
-  { q: "What happens if I join the Beta now?", a: "Closed Beta partners get priority support, direct input on our product roadmap, and a locked-in legacy rate of R500/mo (marked down from the standard R2500/mo) for the lifetime of their account." }
+const getDynamicFAQS = (nicheData?: NicheData) => [
+  { q: `How exactly does Preemptly find leads?`, a: `We continuously monitor ${nicheData ? nicheData.platform : 'public communities'} for posts containing specific pain points like ${nicheData ? `"${nicheData.painPoint}"` : 'frustration with a current provider'}. When someone in ${nicheData ? nicheData.industry : 'your industry'} posts a question or complaint, our system alerts you immediately.` },
+  { q: "Is this a scraping tool?", a: `No. Typical scraping tools return lists of emails or basic company data. Preemptly identifies specific ${nicheData ? nicheData.nichePersona : 'conversations'} where someone is asking for help right now, allowing you to build trust by answering them in public.` },
+  { q: "What do I do when I receive an alert?", a: `You review the conversation, and if you can help, you provide professional advice in the public thread. By solving the problem where others can see it, you prove your expertise to the entire community at once.` },
+  { q: "How does the Free Trial work?", a: `Every time we find a highly relevant post matching your exact configured criteria, it counts as 1 intercept. The trial is complete when we have delivered 10 actionable leads directly to your dashboard.` },
+  { q: "Can I connect this to my current CRM?", a: `Right now, Preemptly acts as a standalone dashboard so your CRM isn't filled with unfiltered data. You review the leads here first. Direct CRM exports are currently in development.` },
+  { q: "How does the AI Draft comment feature work?", a: `The system reads the full context of the user's post and drafts a relevant, helpful response. It does not auto-post anything; it simply provides a draft for you to edit, approve, and post from your own authentic account.` },
+  { q: "What happens if I join the Beta now?", a: `Closed Beta partners lock in a permanent rate of R500/mo. When the platform opens to the public at standard pricing, your priority discount remains forever.` }
 ];
 
 export function LandingPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const nicheData = slug ? getPSEODataBySlug(slug) : undefined;
+  
+  const currentFAQS = getDynamicFAQS(nicheData);
   const [heroRef, heroInView] = useIntersectionObserver();
   const [painRef, painInView] = useIntersectionObserver();
   const [engineRef, engineInView] = useIntersectionObserver();
@@ -75,11 +80,15 @@ export function LandingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getEngineMockText = () => {
-    const leads = [
-      { id: 1, user: "SaaS_Founder99", text: "Looking into different PR agencies but they all seem expensive.", score: 7, action: "Intercepted" },
-      { id: 2, user: "CTO_Scaleup", text: "Our current dev team is slow. Need a reliable offshore partner.", score: 8, action: "Priority Match" },
-      { id: 3, user: "Marketing_Ops", text: "Anyone using AI for lead gen? Need something high-intent only.", score: 9, action: "Critical Lead" },
-      { id: 4, user: "Desperate_Founder", text: "Need urgent help with AWS migration. Current guy vanished.", score: 10, action: "Golden Intercept" },
+    const leads = nicheData ? [
+      { id: 1, user: nicheData.exampleLeadUser, text: nicheData.exampleLeadPost, score: 9, action: "Expert Match" },
+      { id: 2, user: "SaaS_Founder99", text: "Looking into different PR agencies but they all seem expensive.", score: 7, action: "Visibility" },
+      { id: 3, user: "CTO_Scaleup", text: "Our current dev team is slow. Need a reliable offshore partner.", score: 8, action: "Authority Match" },
+    ] : [
+      { id: 1, user: "SaaS_Founder99", text: "Looking into different PR agencies but they all seem expensive.", score: 7, action: "Visibility" },
+      { id: 2, user: "CTO_Scaleup", text: "Our current dev team is slow. Need a reliable offshore partner.", score: 8, action: "Authority Match" },
+      { id: 3, user: "Marketing_Ops", text: "Anyone using AI for growth? Need something high-intent only.", score: 9, action: "Expert Match" },
+      { id: 4, user: "Desperate_Founder", text: "Need urgent help with AWS migration. Current guy vanished.", score: 10, action: "Prime Opportunity" },
     ];
 
     const activeLeads = leads.filter(l => intentScore >= l.score);
@@ -108,7 +117,7 @@ export function LandingPage() {
               <div className="flex justify-between items-start mb-3">
                  <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
-                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${lead.user}`} alt="avatar" className="w-full h-full object-cover" />
+                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${lead.user}`} alt="" aria-hidden="true" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex flex-col">
                        <span className="text-xs font-black text-slate-800 tracking-tight">{lead.user}</span>
@@ -143,8 +152,10 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-slate-900 font-sans selection:bg-[#5a8c12] selection:text-white overflow-x-hidden">
       <SEO 
-        title="Preemptly | Scale Your Brand Through Public Proof" 
-        description="Build organic presence. Preemptly finds the exact public conversations where your expertise drives growth."
+        title={nicheData ? `Build Public Authority for ${nicheData.industry} Clients on ${nicheData.platform}` : "Preemptly | Scale Your Brand Through Public Proof"} 
+        description={nicheData ? `Provide visible help to ${nicheData.nichePersona} on ${nicheData.platform} who are experiencing ${nicheData.painPoint}. Build brand trust.` : "Build organic presence. Preemptly finds the exact public conversations where your expertise drives growth."}
+        url={nicheData ? `https://bepreemptly.com/intercept/${nicheData.slug}` : "https://bepreemptly.com/"}
+        type="website"
       />
 
       <script type="application/ld+json">
@@ -162,9 +173,26 @@ export function LandingPage() {
           "description": "Visibility platform that identifies high-impact conversations where expertise drives organic business growth."
         })}
       </script>
+
+      {/* FAQ Rich Snippet - Kills vertical screen real estate on Google */}
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": currentFAQS.map(faq => ({
+            "@type": "Question",
+            "name": faq.q,
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": faq.a
+            }
+          }))
+        })}
+      </script>
       
       {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-slate-200 shadow-sm transition-all">
+      <header>
+        <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-xl z-50 border-b border-slate-200 shadow-sm transition-all">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer">
             <div className="w-9 h-9 flex items-center justify-center rounded-lg shadow-sm overflow-hidden border border-slate-100">
@@ -209,11 +237,13 @@ export function LandingPage() {
           </div>
         </div>
       </nav>
+      </header>
 
+      <main>
       {/* Hero Section */}
       <section 
         ref={heroRef}
-        className={`pt-24 pb-16 md:pt-36 md:pb-24 px-6 max-w-7xl mx-auto transition-all duration-1000 transform ${heroInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
+        className={`pt-24 pb-16 md:pt-36 md:pb-24 px-6 max-w-6xl mx-auto transition-all duration-1000 transform ${heroInView ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}
       >
         <div className="grid md:grid-cols-2 gap-8 lg:gap-14 items-center">
           
@@ -224,13 +254,13 @@ export function LandingPage() {
               Now Available
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-7xl font-extralight tracking-tighter leading-[1.05] text-black">
-              Be the expert they <span className="font-bold text-black border-b-4 border-[#5a8c12]">need</span>,<br className="hidden md:block"/>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extralight tracking-tighter leading-[1.05] text-black">
+              Be the expert {nicheData ? <span className="font-bold text-black border-b-4 border-[#5a8c12]">{nicheData.nichePersona.toLowerCase()}</span> : 'they'} need,<br className="hidden md:block"/>
               exactly when they <span className="font-bold text-black border-b-4 border-[#5a8c12]">need it</span>.
             </h1>
             
             <p className="mt-8 text-lg md:text-xl text-slate-600 font-light leading-relaxed max-w-xl">
-              Don't pitch. Just be the expert. We locate the conversations where your proof-of-expertise converts entire communities at once.
+              Don't cold pitch. Just answer questions. We find the exact posts {nicheData ? `on ${nicheData.platform}` : 'across public forums'} where people are actively asking for help with {nicheData ? `${nicheData.industry.toLowerCase()}` : 'problems you solve'}, so you can demonstrate your authority in the open.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-3 w-full">
@@ -249,13 +279,13 @@ export function LandingPage() {
               <div className="flex -space-x-2.5">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center overflow-hidden">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i * 123}`} alt="avatar" className="w-full h-full object-cover" />
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i * 123}`} alt="" aria-hidden="true" className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
               <div className="flex flex-col">
                  <span className="text-xs font-bold tracking-tight text-slate-900">100+ Elite Agencies</span>
-                 <span className="text-[10px] font-medium text-slate-500 uppercase tracking-tighter">intercepting clients</span>
+                 <span className="text-[10px] font-medium text-slate-500 uppercase tracking-tighter">building public authority</span>
               </div>
             </div>
           </div>
@@ -274,7 +304,7 @@ export function LandingPage() {
                 <div className="flex justify-between items-start mb-4">
                    <div className="flex items-center gap-3">
                      <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
-                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=lostfounder`} alt="avatar" className="w-full h-full object-cover opacity-80" />
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=lostfounder`} alt="" aria-hidden="true" className="w-full h-full object-cover opacity-80" />
                      </div>
                      <div className="flex flex-col">
                        <span className="text-sm font-bold text-slate-800">Frustrated_Founder99</span>
@@ -410,7 +440,7 @@ export function LandingPage() {
                Presence That Converts. <span className="font-bold">Organic Growth.</span>
             </h2>
             <p className="text-slate-500 font-light leading-relaxed">
-               Generic social tools give you noise. We find the specific stages where your expertise creates a magnetic effect for your entire brand.
+               Instead of cold outreach, simply answer public questions from people actively looking for the solutions you provide.
             </p>
           </div>
 
@@ -449,9 +479,9 @@ export function LandingPage() {
                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#5a8c12]/5 blur-3xl rounded-full" />
                 </div>
                 <div className="p-8 pt-6">
-                   <h3 className="font-bold text-lg text-slate-900 mb-2 text-left">Strategic Visibility</h3>
+                   <h3 className="font-bold text-lg text-slate-900 mb-2 text-left">Real-Time Alerts</h3>
                    <p className="text-sm text-slate-500 leading-relaxed font-light text-left">
-                     Stop fighting for scraps. Our AI identifies the exact conversations where your proof-of-value converts entire audiences into followers and fans.
+                     Our system monitors Reddit and StackOverflow to find specific conversations where users are actively struggling, allowing you to provide visible, expert help.
                    </p>
                 </div>
              </div>
@@ -506,9 +536,9 @@ export function LandingPage() {
              {/* Card 3: Global Reach */}
              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden group hover:shadow-md transition-shadow">
                 <div className="p-8 pb-4 text-left">
-                  <h3 className="font-bold text-lg text-slate-900 mb-2">Total Global Awareness</h3>
+                  <h3 className="font-bold text-lg text-slate-900 mb-2">Global Community Coverage</h3>
                   <p className="text-sm text-slate-500 leading-relaxed font-light">
-                    Stop guessing where your next lead is hiding. Our network identifies high-intent hand-raisers across 250k+ niche communities globally, the second they experience the pain you solve.
+                    Instead of manually searching through subreddits and forums, our engine continuously checks over 250k+ niche communities to find matching queries.
                   </p>
                 </div>
                 <div className="flex-1 bg-[#FAFAFA] mx-8 border border-b-0 border-slate-200 rounded-t-2xl overflow-hidden relative min-h-[220px]">
@@ -564,9 +594,9 @@ export function LandingPage() {
              {/* Card 4: Automated Context */}
              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden group hover:shadow-md transition-shadow">
                 <div className="p-8 pb-6 text-left">
-                  <h3 className="font-bold text-lg text-slate-900 mb-2">Evidence-First Strategy</h3>
+                  <h3 className="font-bold text-lg text-slate-900 mb-2">Build Public Authority</h3>
                   <p className="text-sm text-slate-500 leading-relaxed font-light max-w-sm">
-                    Preemptly identifies the exact conversations where your expertise scales your brand and wins the room.
+                    By replying to these posts with genuinely helpful advice, you build trust with the original poster and everyone else who reads the public thread.
                   </p>
                 </div>
                 <div className="flex-1 bg-[#FAFAFA] rounded-t-2xl mx-8 border border-b-0 border-slate-200 overflow-hidden relative min-h-[220px]">
@@ -762,7 +792,7 @@ export function LandingPage() {
                  <div className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-4">Phase 1: The Proof</div>
                  <div className="text-5xl font-black mb-6 text-black tracking-tighter">Free</div>
                  <p className="text-slate-600 font-light leading-relaxed mb-10 max-w-sm">
-                   We spin up a dedicated listener for your industry. We will find and drop your first 10 hyper-qualified, screaming leads directly into your dashboard. Completely free. No credit card required.
+                   We spin up a dedicated listener for {nicheData ? `your ${nicheData.industry} firm` : 'your industry'}. We will find and drop your first 10 hyper-qualified {nicheData ? nicheData.nichePersona.toLowerCase() : 'screaming leads'} directly into your dashboard. Completely free. No credit card required.
                  </p>
                </div>
                <button 
@@ -790,7 +820,7 @@ export function LandingPage() {
                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest line-through decoration-slate-300 ml-2">R2500</div>
                  </div>
                  <p className="text-slate-600 font-light leading-relaxed mb-10 max-w-sm">
-                   Once you see the evidence, upgrade to unlock unlimited opportunities, advanced expertise strategies, and priority access to our upcoming CRM integrations.
+                   Once you see the evidence, upgrade to unlock unlimited {nicheData ? `${nicheData.industry.toLowerCase()} opportunities` : 'opportunities'}, advanced expertise strategies, and priority access to our upcoming {nicheData ? nicheData.pricingContext : 'CRM integrations'}.
                  </p>
                </div>
                <button 
@@ -842,7 +872,7 @@ export function LandingPage() {
         </div>
 
         <div className="px-6 md:px-0">
-          {FAQS.map((faq, index) => (
+          {currentFAQS.map((faq, index) => (
             <FAQItem key={index} question={faq.q} answer={faq.a} />
           ))}
         </div>
@@ -873,6 +903,7 @@ export function LandingPage() {
           </button>
         </div>
       </section>
+      </main>
 
       <InteractiveOnboarding isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <ChatWidget />

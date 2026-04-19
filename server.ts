@@ -202,6 +202,9 @@ async function startServer() {
       const aiResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
+        config: {
+          maxOutputTokens: 100,
+        }
       });
 
       const responseText = aiResponse.text || '[]';
@@ -250,6 +253,9 @@ async function startServer() {
       const aiResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
+        config: {
+          maxOutputTokens: 100,
+        }
       });
 
       const responseText = aiResponse.text || '[]';
@@ -267,12 +273,24 @@ async function startServer() {
     }
   });
 
+  const rssCache = new Map<string, { data: any, timestamp: number }>();
+  const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
   app.get("/api/reddit/:subreddit", async (req, res) => {
     try {
       const { subreddit } = req.params;
       
       if (!subreddit || subreddit.trim() === "") {
         return res.status(400).json({ error: "Subreddit name is required" });
+      }
+
+      const cacheKey = subreddit.trim().toLowerCase();
+      if (rssCache.has(cacheKey)) {
+        const cached = rssCache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+            console.log(`[RSS Cache] Serving ${cacheKey} from cache`);
+            return res.json(cached.data);
+        }
       }
 
       // Use RSS feed via rss2json to bypass Reddit's strict IP blocking
@@ -338,6 +356,7 @@ async function startServer() {
         return postDate > fortyEightHoursAgo;
       });
 
+      rssCache.set(cacheKey, { data: recentPosts, timestamp: Date.now() });
       return res.json(recentPosts);
     } catch (error) {
       console.error("Error fetching from RSS API:", error);
@@ -382,6 +401,7 @@ async function startServer() {
       const leadsSnap = await adminDb.collection('leads')
         .where('scraperId', 'in', scraperIds)
         .where('pushedToPortal', '==', true)
+        .limit(100)
         .get();
 
       const leads = leadsSnap.docs.map((d: any) => {
@@ -489,6 +509,9 @@ async function startServer() {
       const aiResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
+        config: {
+          maxOutputTokens: 150,
+        }
       });
 
       const comment = aiResponse.text || "I'm sorry, I couldn't generate a comment at this time.";
