@@ -105,4 +105,7 @@ export interface ChatRoom {
   hasUnreadClient: boolean;
   clientTyping?: boolean;
   adminTyping?: boolean;
+  clientOnline?: boolean;
+  clientLastSeen?: any;
 }
+

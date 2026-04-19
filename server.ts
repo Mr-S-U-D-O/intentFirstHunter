@@ -490,30 +490,42 @@ async function startServer() {
       }
 
       // 5. Build the Generation Prompt
-      const prompt = `You are ${scraper.clientName || 'the user'}, a ${scraper.isSoloFreelancer ? 'Solo Freelancer' : 'Company/Agency'} specialized in ${scraper.clientSells || 'providing high-value solutions'}.
-      Your core value proposition: ${scraper.clientDoes || 'We deliver excellent results.'}
-      Your preferred communication tone: ${scraper.clientTone || 'Friendly'}
+      // Philosophy: Genuine expert first, business owner second.
+      // Lead with value. Never use corporate "At X, we..." framing.
+      const toneGuide = scraper.clientTone === 'professional'
+        ? 'Direct, precise, and knowledgeable. No fluff.'
+        : scraper.clientTone === 'technical'
+        ? 'Peer-to-peer, technical depth, skip basics.'
+        : 'Warm, conversational, and genuinely helpful.';
 
-      SOCIAL MEDIA POST TO INTERACT WITH:
-      Title: ${leadData.postTitle}
-      Content: ${leadData.postContent || 'N/A'}
+      const prompt = `You are a knowledgeable expert and practitioner in the field of "${scraper.clientSells || 'professional services'}".
 
-      TASK: Draft a highly context-aware, helpful, and insightful "Smart Comment" for this post.
-      - Deeply analyze any frustrations, questions, or software pain points the author is expressing.
-      - If they have a question, offer a helpful tip or directly answer it drawing from your expertise.
-      - If they express a pain point (e.g. software issues, workflow bottlenecks), acknowledge it empathetically.
-      - DO NOT pitch or sell aggressively. This is relationship and community building.
-      - SUBTLE NUDGING: You must implicitly and elegantly hint that you are a better alternative or have solved this problem. Use framing such as "At ${scraper.clientName || 'our company'}, we deliberately built our process to avoid exactly this..." or "We've noticed this is a common issue with X, which is why we approach it differently..." ONLY when it genuinely fits the context.
-      - Maintain a ${scraper.clientTone} tone. Keep it short: 2-3 sentences max.
+YOUR EXPERTISE & BACKGROUND:
+${scraper.clientDoes || 'You have deep experience solving problems in this industry.'}
+Business type: ${scraper.isSoloFreelancer ? 'Independent specialist' : 'Agency/Team'}
 
-      Return ONLY the comment text. No preamble.`;
+POST YOU ARE RESPONDING TO:
+Title: ${leadData.postTitle}
+Content: ${leadData.postContent ? leadData.postContent.substring(0, 800) : 'N/A'}
+
+YOUR TASK: Write a genuine, helpful comment as an expert practitioner — NOT as a company spokesperson.
+
+RULES (follow every single one):
+1. LEAD WITH VALUE: Your first sentence must directly address the specific problem, question, or frustration in the post. Answer it, or validate it with genuine insight.
+2. SHOW, DON'T TELL: Demonstrate expertise through what you say, not by saying you're an expert.
+3. NEVER USE THESE PHRASES — these are banned: "At ${scraper.clientName || 'our company'}, we...", "we've built", "our approach", "our process", "as a company". Do not name-drop the business.
+4. BE SPECIFIC: Reference the actual details from the post. Generic advice that could apply to anyone is useless.
+5. TONE: ${toneGuide}
+6. LENGTH: 2-3 sentences max. Tight and punchy. Every word must earn its place.
+
+Return ONLY the comment text. No preamble, no quotes around it.`;
 
       const aiResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          maxOutputTokens: 500,
-          temperature: 0.8,
+          maxOutputTokens: 780,
+          temperature: 0.85,
         }
       });
 
@@ -872,6 +884,41 @@ async function startServer() {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  // POST /api/portal/:token/presence - Client online/offline heartbeat
+  app.post("/api/portal/:token/presence", express.json(), async (req, res) => {
+    const { token } = req.params;
+    try {
+      const { online } = req.body;
+
+      // Verify token is valid before writing presence
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .limit(1)
+        .get();
+      
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      const clientName = scrapersSnap.docs[0].data().clientName || 'Client';
+      const userId = scrapersSnap.docs[0].data().userId;
+
+      await adminDb.collection('portal_chats').doc(token).set({
+        clientOnline: Boolean(online),
+        clientLastSeen: FieldValue.serverTimestamp(),
+        // Ensure the room doc always has identity fields for the Start Chat panel
+        clientName,
+        userId,
+      }, { merge: true });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

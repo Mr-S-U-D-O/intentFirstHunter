@@ -95,6 +95,27 @@ export function ClientPortal() {
     fetchPortal();
   }, [fetchPortal]);
 
+  // Presence heartbeat — write clientOnline=true while portal is open
+  useEffect(() => {
+    if (!token) return;
+
+    const updatePresence = (online: boolean) => {
+      fetch(`/api/portal/${token}/presence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ online }),
+      }).catch(() => {});
+    };
+
+    updatePresence(true);
+    const heartbeat = setInterval(() => updatePresence(true), 30000);
+
+    return () => {
+      clearInterval(heartbeat);
+      updatePresence(false);
+    };
+  }, [token]);
+
   // SSE Chat stream
   useEffect(() => {
     if (!token) return;
