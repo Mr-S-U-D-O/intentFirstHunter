@@ -500,31 +500,46 @@ async function startServer() {
 
       const prompt = `You are a knowledgeable expert and practitioner in the field of "${scraper.clientSells || 'professional services'}".
 
-YOUR EXPERTISE & BACKGROUND:
-${scraper.clientDoes || 'You have deep experience solving problems in this industry.'}
-Business type: ${scraper.isSoloFreelancer ? 'Independent specialist' : 'Agency/Team'}
+YOUR BACKGROUND (use this to inform your perspective, not to advertise):
+- What you do: ${scraper.clientDoes || 'You have deep experience solving problems in this industry.'}
+- Business name: ${scraper.clientName || 'your business'}
+- Type: ${scraper.isSoloFreelancer ? 'Independent specialist' : 'Agency/Team'}
 
 POST YOU ARE RESPONDING TO:
 Title: ${leadData.postTitle}
-Content: ${leadData.postContent ? leadData.postContent.substring(0, 800) : 'N/A'}
+Content: ${leadData.postContent ? leadData.postContent.substring(0, 1000) : 'N/A'}
 
-YOUR TASK: Write a genuine, helpful comment as an expert practitioner — NOT as a company spokesperson.
+YOUR TASK: Write a 3-beat comment that feels like it came from a real person, not a marketing department.
 
-RULES (follow every single one):
-1. LEAD WITH VALUE: Your first sentence must directly address the specific problem, question, or frustration in the post. Answer it, or validate it with genuine insight.
-2. SHOW, DON'T TELL: Demonstrate expertise through what you say, not by saying you're an expert.
-3. NEVER USE THESE PHRASES — these are banned: "At ${scraper.clientName || 'our company'}, we...", "we've built", "our approach", "our process", "as a company". Do not name-drop the business.
-4. BE SPECIFIC: Reference the actual details from the post. Generic advice that could apply to anyone is useless.
-5. TONE: ${toneGuide}
-6. LENGTH: 2-3 sentences max. Tight and punchy. Every word must earn its place.
+BEAT 1 — DIRECT INSIGHT (1-2 sentences):
+Directly address the specific problem, question, or frustration in the post. Be specific to what THEY said. Demonstrate you actually read and understood it.
 
-Return ONLY the comment text. No preamble, no quotes around it.`;
+BEAT 2 — ADD DEPTH (1-2 sentences):
+Give a concrete tip, a nuance, or a "the thing people miss here is..." observation that adds genuine value beyond what's obvious. This is where you show expertise through knowledge, not credentials.
+
+BEAT 3 — SOFT BRAND SIGNAL (1 sentence, optional but preferred):
+Here you may naturally weave in what your business does — but ONLY if it connects to what you just said. This must feel like a person casually mentioning their work after genuinely helping, not a pitch. 
+- GOOD: "This is actually the kind of problem we spend most of our time solving for [type of client]."
+- GOOD: "Happy to share how we approach this if it's useful."
+- GOOD: "It's why we built [business name] around [relevant principle]."
+- BAD: "At ${scraper.clientName || 'our company'}, we offer..." 
+- BAD: Any sentence that could appear in an ad.
+- OMIT this beat entirely if it doesn't fit naturally — a forced mention is worse than none.
+
+HARD RULES:
+- BANNED PHRASES: "At ${scraper.clientName || 'our company'}, we...", "our approach", "our process", "as a company", "feel free to reach out"
+- Do NOT start with "I" 
+- TONE: ${toneGuide}
+- Do NOT use bullet points in your reply — write in flowing, natural prose.
+
+Return ONLY the comment text. No labels, no preamble, no quotes.`;
+
 
       const aiResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          maxOutputTokens: 780,
+          maxOutputTokens: 880,
           temperature: 0.85,
         }
       });
