@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
-import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles, X, MessageSquare } from 'lucide-react';
+import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles, X, MessageSquare, Paperclip, Smile } from 'lucide-react';
 import { ChatMessage } from '../types';
 import { LiveTimestamp } from './LiveTimestamp';
 import { ClientSetupModal } from './ClientSetupModal';
@@ -60,6 +60,12 @@ export function ClientPortal() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [adminTyping, setAdminTyping] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<{name: string, data: string, type: string} | null>(null);
+  
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchPortal = useCallback(async () => {
@@ -92,13 +98,15 @@ export function ClientPortal() {
 
     eventSource.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        setMessages(data);
-        
-        // Count unread from admin ONLY when chat is closed
-        if (!chatOpen) {
-          const unreadMsgs = data.filter((m: ChatMessage) => m.sender === 'admin' && !m.isRead).length;
-          setUnreadCount(unreadMsgs);
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'messages') {
+          setMessages(payload.messages);
+          if (!chatOpen) {
+            const unreadMsgs = payload.messages.filter((m: ChatMessage) => m.sender === 'admin' && !m.isRead).length;
+            setUnreadCount(unreadMsgs);
+          }
+        } else if (payload.type === 'meta') {
+          setAdminTyping(payload.adminTyping);
         }
       } catch (e) {
         // Parse error, ignore incomplete streams
@@ -125,19 +133,69 @@ export function ClientPortal() {
     }
   }, [chatOpen, messages]);
 
+  const emitTyping = (isTyping: boolean) => {
+    fetch(`/api/portal/${token}/chat/typing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ typing: isTyping, sender: 'client' })
+    }).catch(() => {});
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    emitTyping(true);
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      emitTyping(false);
+    }, 2000);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast('File is too large. Max 5MB.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAttachedFile({
+        name: file.name,
+        type: file.type,
+        data: event.target?.result as string
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || sendingMsg) return;
+    if ((!newMessage.trim() && !attachedFile) || sendingMsg) return;
 
     const msg = newMessage.trim();
+    const fileToSend = attachedFile;
+    
     setNewMessage('');
+    setAttachedFile(null);
+    setShowEmojis(false);
     setSendingMsg(true);
+    emitTyping(false);
 
     try {
       await fetch(`/api/portal/${token}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: msg, sender: 'client' })
+        body: JSON.stringify({ 
+          text: msg, 
+          sender: 'client',
+          fileData: fileToSend?.data,
+          fileName: fileToSend?.name,
+          fileType: fileToSend?.type
+        })
       });
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -145,6 +203,7 @@ export function ClientPortal() {
     } catch {
       toast('Failed to send message. Please try again.', 'error');
       setNewMessage(msg);
+      if (fileToSend) setAttachedFile(fileToSend);
     } finally {
       setSendingMsg(false);
     }
@@ -837,6 +896,25 @@ export function ClientPortal() {
                     }`}
                   >
                     <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    
+                    {msg.fileName && msg.fileData && (
+                      <div className={`mt-2 p-2 rounded-xl border flex items-center gap-2 ${isClient ? 'bg-black/10 border-transparent' : 'bg-slate-50 border-slate-200'}`}>
+                        {msg.fileType?.startsWith('image/') ? (
+                          <img src={msg.fileData} alt={msg.fileName} className="w-16 h-16 object-cover rounded-lg" />
+                        ) : (
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isClient ? 'bg-white/20' : 'bg-slate-200'}`}>
+                            <Paperclip size={14} className={isClient ? 'text-white' : 'text-slate-500'} />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold truncate">{msg.fileName}</p>
+                          <a href={msg.fileData} download={msg.fileName} className={`text-[10px] uppercase font-black hover:underline ${isClient ? 'text-white/80' : 'text-[#5a8c12]'}`}>
+                            Download
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
                     <span 
                       className={`text-[9px] font-bold uppercase tracking-wider block mt-1 ${
                         isClient ? 'text-white/60 text-right' : 'text-slate-400'
@@ -848,30 +926,91 @@ export function ClientPortal() {
                 </div>
               );
             })}
+            
+            {adminTyping && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-slate-100 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5 w-16">
+                  <span className="w-2 h-2 bg-slate-300 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-2 h-2 bg-slate-300 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" />
+                </div>
+              </div>
+            )}
+            
             <div ref={messagesEndRef} className="h-1" />
           </div>
           
           {/* Input Area */}
-          <form 
-            onSubmit={handleSendMessage} 
-            className="p-3 bg-white border-t border-slate-100 flex items-center gap-2 shrink-0"
-          >
-            <input 
-              type="text"
-              value={newMessage}
-              onChange={e => setNewMessage(e.target.value)}
-              placeholder="Write a message..."
-              className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#5a8c12]/20 focus:border-[#5a8c12]/30 transition-all font-medium placeholder:font-normal placeholder:text-slate-400"
-              disabled={sendingMsg}
-            />
-            <button 
-              type="submit"
-              disabled={!newMessage.trim() || sendingMsg}
-              className="w-11 h-11 shrink-0 bg-[#5a8c12] text-white rounded-xl flex items-center justify-center hover:bg-[#4a730f] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#5a8c12]/20"
+          <div className="bg-white border-t border-slate-100">
+            {/* Attachment preview */}
+            {attachedFile && (
+              <div className="px-3 pt-3 pb-1 flex items-center gap-2">
+                <div className="bg-[#5a8c12]/10 border border-[#5a8c12]/20 rounded-xl px-3 py-1.5 flex items-center gap-2 max-w-full">
+                  <Paperclip size={12} className="text-[#5a8c12] shrink-0" />
+                  <span className="text-xs font-bold text-[#5a8c12] truncate">{attachedFile.name}</span>
+                  <button onClick={() => setAttachedFile(null)} className="text-[#5a8c12]/70 hover:text-[#5a8c12] shrink-0 ml-1">
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Emoji Panel */}
+            {showEmojis && (
+              <div className="px-3 py-2 border-b border-slate-50 flex gap-2 overflow-x-auto custom-scrollbar bg-slate-50">
+                {['👍', '🔥', '✅', '🙌', '🚀', '👀', '💡', '💯', '🤔', '👋'].map(emoji => (
+                  <button 
+                    key={emoji} 
+                    type="button"
+                    onClick={() => { setNewMessage(prev => prev + emoji); setShowEmojis(false); }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-white border border-slate-100 shadow-sm hover:bg-slate-100 shrink-0 text-lg transition-transform hover:scale-110"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <form 
+              onSubmit={handleSendMessage} 
+              className="p-3 flex items-center gap-2 shrink-0"
             >
-              {sendingMsg ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send size={18} className="translate-x-[1px]" />}
-            </button>
-          </form>
+              <button 
+                type="button"
+                onClick={() => setShowEmojis(!showEmojis)}
+                className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+                title="Emojis"
+              >
+                <Smile size={18} />
+              </button>
+              
+              <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+                title="Attach file"
+              >
+                <Paperclip size={18} />
+              </button>
+
+              <input 
+                type="text"
+                value={newMessage}
+                onChange={handleInputChange}
+                placeholder="Write a message..."
+                className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5a8c12]/20 focus:border-[#5a8c12]/30 transition-all font-medium placeholder:font-normal placeholder:text-slate-400"
+                disabled={sendingMsg}
+              />
+              <button 
+                type="submit"
+                disabled={(!newMessage.trim() && !attachedFile) || sendingMsg}
+                className="w-10 h-10 shrink-0 bg-[#5a8c12] text-white rounded-xl flex items-center justify-center hover:bg-[#4a730f] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#5a8c12]/20"
+              >
+                {sendingMsg ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send size={18} className="translate-x-[1px]" />}
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Toggle Button */}

@@ -90,4 +90,19 @@ export interface ChatMessage {
   sender: 'client' | 'admin';
   timestamp: string;
   isRead: boolean;
+  fileData?: string; // base64
+  fileName?: string;
+  fileType?: string;
+}
+
+export interface ChatRoom {
+  id: string; // The token
+  clientName: string;
+  lastMessage: string;
+  lastMessageAt: any;
+  lastSender: 'client' | 'admin';
+  hasUnreadAdmin: boolean;
+  hasUnreadClient: boolean;
+  clientTyping?: boolean;
+  adminTyping?: boolean;
 }

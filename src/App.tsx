@@ -8,6 +8,7 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { LogsView } from './components/LogsView';
 import { ClientPortal } from './components/ClientPortal';
 import { CRMView } from './components/CRMView';
+import { ChatManager } from './components/ChatManager';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { LandingPage } from './components/public/LandingPage';
 import { MagicCursor } from './components/ui/smooth-cursor';
@@ -52,6 +53,7 @@ export default function App() {
                 <Route path="privacy" element={<PrivacyPolicy />} />
                 <Route path="logs" element={<LogsView />} />
                 <Route path="crm" element={<CRMView />} />
+                <Route path="inbox" element={<ChatManager />} />
               </Route>
             </Routes>
           </BrowserRouter>

@@ -716,10 +716,13 @@ async function startServer() {
                 text: data.text,
                 sender: data.sender,
                 isRead: data.isRead,
-                timestamp: data.timestamp?.toDate?.()?.toISOString() || new Date().toISOString()
+                timestamp: data.timestamp?.toDate?.()?.toISOString() || new Date().toISOString(),
+                fileData: data.fileData,
+                fileName: data.fileName,
+                fileType: data.fileType
               };
             });
-            res.write(`data: ${JSON.stringify(messages)}\n\n`);
+            res.write(`data: {"type":"messages","messages":${JSON.stringify(messages)}}\n\n`);
           },
           (error) => {
             console.error('SSE Snapshot error:', error);
@@ -727,8 +730,17 @@ async function startServer() {
           }
         );
 
+      const unsubscribeRooms = adminDb.collection('portal_chats').doc(token)
+        .onSnapshot((doc) => {
+           if (doc.exists) {
+             const data = doc.data();
+             res.write(`data: {"type":"meta","adminTyping":${!!data?.adminTyping}}\n\n`);
+           }
+        });
+
       req.on('close', () => {
         unsubscribe();
+        unsubscribeRooms();
       });
 
     } catch (error: any) {
@@ -739,13 +751,13 @@ async function startServer() {
   });
 
   // POST /api/portal/:token/chat - Send Chat Message
-  app.post("/api/portal/:token/chat", express.json(), async (req, res) => {
+  app.post("/api/portal/:token/chat", express.json({ limit: '10mb' }), async (req, res) => {
     const { token } = req.params;
     try {
-      const { text, sender } = req.body;
+      const { text, sender, fileData, fileName, fileType } = req.body;
 
-      if (!text || typeof text !== 'string') {
-        return res.status(400).json({ error: "Invalid message text" });
+      if ((!text || typeof text !== 'string') && !fileData) {
+        return res.status(400).json({ error: "Invalid message" });
       }
       
       const safeSender = sender === 'admin' ? 'admin' : 'client';
@@ -762,14 +774,17 @@ async function startServer() {
       const userId = scrapersSnap.docs[0].data().userId;
 
       await adminDb.collection('portal_chats').doc(token).collection('messages').add({
-        text,
+        text: text || '',
         sender: safeSender,
         isRead: false,
-        timestamp: FieldValue.serverTimestamp()
+        timestamp: FieldValue.serverTimestamp(),
+        ...(fileData ? { fileData, fileName, fileType } : {})
       });
       
+      const snippet = text ? text.substring(0, 50) : (fileName ? `Attachment: ${fileName}` : 'Attachment');
+      
       await adminDb.collection('portal_chats').doc(token).set({
-        lastMessage: text.substring(0, 50),
+        lastMessage: snippet,
         lastMessageAt: FieldValue.serverTimestamp(),
         lastSender: safeSender,
         clientName: clientName,
@@ -791,6 +806,24 @@ async function startServer() {
       res.json({ success: true });
     } catch (error: any) {
       await logSystemError("portal_chat", "Chat send error", { error: error.message, stack: error.stack, token });
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // POST /api/portal/:token/chat/typing - Send Typing Status
+  app.post("/api/portal/:token/chat/typing", express.json(), async (req, res) => {
+    const { token } = req.params;
+    try {
+      const { typing, sender } = req.body;
+      const safeSender = sender === 'admin' ? 'admin' : 'client';
+      const typingField = safeSender === 'admin' ? 'adminTyping' : 'clientTyping';
+      
+      await adminDb.collection('portal_chats').doc(token).set({
+        [typingField]: Boolean(typing)
+      }, { merge: true });
+      
+      res.json({ success: true });
+    } catch {
       res.status(500).json({ error: "Internal server error" });
     }
   });
