@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
-import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles, X, MessageSquare, Paperclip, Smile } from 'lucide-react';
+import { ExternalLink, MessageCircle, Star, Clock, Zap, Lock, ChevronDown, ChevronUp, Send, LayoutGrid, List, ArrowUpDown, Trash2, CheckCircle, Sparkles, X, MessageSquare, Paperclip, Smile, ShieldCheck, ArrowRight, Infinity } from 'lucide-react';
 import { ChatMessage } from '../types';
 import { LiveTimestamp } from './LiveTimestamp';
 import { ClientSetupModal } from './ClientSetupModal';
@@ -53,6 +53,7 @@ export function ClientPortal() {
   const [showAiModal, setShowAiModal] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [updatingOutcome, setUpdatingOutcome] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Chat state
   const [chatOpen, setChatOpen] = useState(false);
@@ -602,9 +603,15 @@ export function ClientPortal() {
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center gap-2 pt-2 border-t border-slate-50">
-                      <Lock size={14} className="text-slate-300" />
-                      <span className="text-xs font-bold text-slate-400">Upgrade to unlock</span>
+                    <div className="pt-2 border-t border-slate-50">
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-slate-900 to-slate-700 hover:from-[#5a8c12] hover:to-[#4a730f] text-white text-xs font-black uppercase tracking-widest py-3 rounded-xl transition-all duration-300 shadow-lg"
+                      >
+                        <Lock size={13} />
+                        Unlock Full Access
+                        <ArrowRight size={13} />
+                      </button>
                     </div>
                   )}
                 </div>
@@ -775,23 +782,155 @@ export function ClientPortal() {
 
         {/* Trial Exhausted Banner */}
         {trialExhausted && (
-          <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 text-center shadow-sm">
-            <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
-              <Lock size={24} className="text-amber-500" />
+          <div className="bg-white rounded-2xl border-2 border-slate-100 overflow-hidden shadow-sm">
+            {/* Gradient Header */}
+            <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-center overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-[#5a8c12] to-transparent" />
+              <div className="relative z-10">
+                <div className="inline-flex items-center gap-2 bg-[#5a8c12]/10 border border-[#5a8c12]/20 px-3 py-1.5 rounded-full mb-5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#5a8c12] animate-pulse" />
+                  <span className="text-[10px] font-black text-[#5a8c12] uppercase tracking-widest">Trial Complete</span>
+                </div>
+                <h2 className="text-2xl font-black text-white tracking-tight mb-2">You've Seen the Proof.<br/>Now Scale It.</h2>
+                <p className="text-slate-400 text-sm font-light max-w-sm mx-auto leading-relaxed">
+                  Your {data.trialLimit} free intercepts were designed to show you exactly what Preemptly can do — before you commit to anything.
+                </p>
+              </div>
             </div>
-            <h2 className="text-lg font-black text-slate-900 mb-2">Trial Limit Reached</h2>
-            <p className="text-sm text-slate-500 mb-4">
-              You've used all {data.trialLimit} free leads. To unlock unlimited access, contact your account manager.
-            </p>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(`Hi! I'd like to upgrade my Preemptly plan for ${data.clientName}. Portal: ${window.location.href}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white font-black text-sm uppercase tracking-widest px-6 py-3 rounded-xl transition-colors shadow-md"
-            >
-              <MessageCircle size={16} />
-              WhatsApp to Unlock
-            </a>
+
+            {/* Body */}
+            <div className="p-6 flex flex-col gap-4">
+              {/* What unlocks */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { icon: <Infinity size={16} />, label: 'Unlimited Intercepts' },
+                  { icon: <Sparkles size={16} />, label: 'AI Expert Drafts' },
+                  { icon: <Zap size={16} />, label: 'Priority Alerts' },
+                ].map((f) => (
+                  <div key={f.label} className="flex flex-col items-center gap-2 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                    <div className="w-8 h-8 rounded-lg bg-[#5a8c12]/10 text-[#5a8c12] flex items-center justify-center">{f.icon}</div>
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-tight">{f.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="w-full bg-gradient-to-r from-slate-900 to-slate-700 hover:from-[#5a8c12] hover:to-[#4a730f] text-white font-black text-xs uppercase tracking-widest py-4 rounded-xl transition-all duration-500 shadow-xl shadow-black/10 flex items-center justify-center gap-2 group"
+              >
+                Unlock Full Access — R500/mo
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <p className="text-center text-[10px] text-slate-400 font-medium">
+                Closed Beta rate. Locked in forever when you join now.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* === UPGRADE MODAL === */}
+        {showUpgradeModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-slate-100">
+
+              {/* Modal Header */}
+              <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-center overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-gradient-to-r from-transparent via-[#5a8c12] to-transparent" />
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-colors z-20"
+                >
+                  <X size={16} />
+                </button>
+                <div className="relative z-10">
+                  <div className="w-14 h-14 rounded-2xl bg-[#5a8c12]/10 border border-[#5a8c12]/20 flex items-center justify-center mx-auto mb-5">
+                    <img src="/preemptly-mascot.png" alt="Preemptly" className="w-10 h-10 object-cover rounded-xl" />
+                  </div>
+                  <div className="inline-flex items-center gap-2 bg-[#5a8c12]/10 border border-[#5a8c12]/20 px-3 py-1.5 rounded-full mb-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#5a8c12] animate-pulse" />
+                    <span className="text-[10px] font-black text-[#5a8c12] uppercase tracking-widest">Closed Beta Access</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-white tracking-tight mb-2">Unlock Your Full Portal</h3>
+                  <div className="flex items-baseline justify-center gap-2 mt-3">
+                    <span className="text-4xl font-black text-white tracking-tighter">R500</span>
+                    <span className="text-slate-400 font-light">/month</span>
+                    <span className="text-slate-500 text-sm line-through">R2,500</span>
+                  </div>
+                  <p className="text-[10px] text-[#5a8c12] font-bold uppercase tracking-widest mt-1">80% Beta Discount — Locked Forever</p>
+                </div>
+              </div>
+
+              {/* What You Unlock */}
+              <div className="px-8 pt-6">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">What you unlock</p>
+                <div className="space-y-2.5">
+                  {[
+                    { icon: <Infinity size={14} />, title: 'Unlimited Intercepts', desc: 'Every relevant post, delivered in real-time, forever.' },
+                    { icon: <Sparkles size={14} />, title: 'AI Expert Response Drafts', desc: 'One-click authority drafts tailored to each opportunity.' },
+                    { icon: <Zap size={14} />, title: 'Priority Intent Alerts', desc: 'High-score leads (8+) flagged immediately.' },
+                    { icon: <ShieldCheck size={14} />, title: 'Permanent Beta Rate', desc: 'Your R500/mo is locked in. No price increases. Ever.' },
+                  ].map((item) => (
+                    <div key={item.title} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <div className="w-7 h-7 rounded-lg bg-[#5a8c12]/10 text-[#5a8c12] flex items-center justify-center shrink-0 mt-0.5">{item.icon}</div>
+                      <div>
+                        <p className="text-sm font-black text-slate-800">{item.title}</p>
+                        <p className="text-xs text-slate-500 font-light">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trust Note */}
+              <div className="mx-8 mt-5 p-4 rounded-2xl bg-amber-50 border border-amber-100">
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <ShieldCheck size={14} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-amber-800 mb-1">A Note on Our Payment Process</p>
+                    <p className="text-[11px] text-amber-700 font-light leading-relaxed">
+                      We're in the process of integrating a self-serve payment system. For now, upgrading is handled personally — you'll receive your payment details directly from the Preemptly founder, and your portal will be unlocked within minutes of confirmation.
+                    </p>
+                    <p className="text-[11px] text-amber-600 font-medium mt-1.5">
+                      This is why we gave you real leads first — so you know exactly what you're paying for.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="p-8 pt-5 flex flex-col gap-3">
+                <a
+                  href={`https://wa.me/27738349023?text=${encodeURIComponent(`Hi! I've completed my Preemptly trial and I'd like to upgrade to the Closed Beta plan for ${data.clientName}. Please send me the payment details.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-[#25D366] hover:bg-[#1da851] text-white font-black text-xs uppercase tracking-widest py-4 rounded-xl transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2 group"
+                >
+                  <MessageCircle size={16} />
+                  Contact Founder on WhatsApp
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </a>
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-black text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all"
+                >
+                  Continue Viewing Trial Leads
+                </button>
+              </div>
+
+              {/* Footer Trust */}
+              <div className="px-8 pb-6 text-center">
+                <p className="text-[10px] text-slate-400 font-medium">
+                  🔒 Your upgrade is handled by the Preemptly founder directly. No bots, no delays.
+                </p>
+              </div>
+
+            </div>
           </div>
         )}
 

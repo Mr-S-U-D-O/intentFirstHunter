@@ -1,11 +1,163 @@
-import { useState, useEffect, useRef } from 'react';
-import { collection, query, where, onSnapshot, doc, orderBy, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  collection, query, where, onSnapshot, doc, orderBy,
+  setDoc, addDoc, serverTimestamp, getDoc, getDocs
+} from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from './AuthProvider';
-import { ChatRoom, ChatMessage } from '../types';
-import { MessageSquare, Image, FileText, Send, Smile, Paperclip, CheckCircle2, ChevronRight, Hash, Clock, X } from 'lucide-react';
-import { format } from 'date-fns';
+import { ChatRoom, ChatMessage, Scraper } from '../types';
+import {
+  MessageSquare, Send, Smile, Paperclip, CheckCheck,
+  ChevronLeft, X, Plus, Search, Circle, ExternalLink,
+  Clock, Users, Wifi, WifiOff, MoreVertical, Image as ImageIcon
+} from 'lucide-react';
+import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 import { toast } from './ui/toast';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function formatRoomTime(ts: any): string {
+  if (!ts) return '';
+  const ms = ts.toMillis ? ts.toMillis() : Date.now();
+  const date = new Date(ms);
+  if (isToday(date)) return format(date, 'h:mm a');
+  if (isYesterday(date)) return 'Yesterday';
+  return format(date, 'MMM d');
+}
+
+function formatLastSeen(ts: any): string {
+  if (!ts) return 'Offline';
+  const ms = ts.toMillis ? ts.toMillis() : Number(ts);
+  const diff = Date.now() - ms;
+  if (diff < 60_000) return 'Just now';
+  return `Last seen ${formatDistanceToNow(new Date(ms), { addSuffix: true })}`;
+}
+
+function Avatar({ name, online, size = 'md' }: { name: string; online?: boolean; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeMap = { sm: 'w-8 h-8 text-xs', md: 'w-11 h-11 text-sm', lg: 'w-14 h-14 text-base' };
+  const dotMap = { sm: 'w-2.5 h-2.5 border', md: 'w-3 h-3 border-2', lg: 'w-3.5 h-3.5 border-2' };
+  const colors = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-[#5a8c12]'];
+  const color = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div className="relative shrink-0">
+      <div className={`${sizeMap[size]} ${color} rounded-2xl flex items-center justify-center shadow-sm`}>
+        <span className="font-black text-white uppercase">{name?.charAt(0) || '?'}</span>
+      </div>
+      {online !== undefined && (
+        <span className={`absolute -bottom-0.5 -right-0.5 ${dotMap[size]} rounded-full border-white ${online ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+      )}
+    </div>
+  );
+}
+
+// ─── New Chat Modal ──────────────────────────────────────────────────────────
+
+function NewChatModal({
+  onClose,
+  onOpen,
+  userId
+}: {
+  onClose: () => void;
+  onOpen: (token: string) => void;
+  userId: string;
+}) {
+  const [scrapers, setScrapers] = useState<Scraper[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'scrapers'),
+      where('userId', '==', userId)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const data: Scraper[] = [];
+      snap.forEach(d => data.push({ id: d.id, ...d.data() } as Scraper));
+      setScrapers(data.filter(s => s.portalToken));
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [userId]);
+
+  const grouped = scrapers.reduce((acc, s) => {
+    const client = s.clientName || 'Unknown';
+    if (!acc[client]) acc[client] = { token: s.portalToken!, scrapers: [] };
+    acc[client].scrapers.push(s);
+    return acc;
+  }, {} as Record<string, { token: string; scrapers: Scraper[] }>);
+
+  const filtered = Object.entries(grouped).filter(([name]) =>
+    name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleSelect = async (clientName: string, token: string) => {
+    // Ensure the room document exists
+    await setDoc(doc(db, 'portal_chats', token), {
+      clientName,
+      userId,
+      lastMessage: '',
+      lastMessageAt: serverTimestamp(),
+      lastSender: 'admin',
+      hasUnreadAdmin: false,
+      hasUnreadClient: false,
+    }, { merge: true });
+    onOpen(token);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-[28px] w-full max-w-sm shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-5 border-b border-slate-100">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-black text-slate-900">Start New Chat</h3>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              autoFocus
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search clients..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#5a8c12]/20 focus:border-[#5a8c12]/50 text-slate-700 placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+        <div className="overflow-y-auto max-h-72 p-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="w-6 h-6 border-2 border-[#5a8c12]/30 border-t-[#5a8c12] rounded-full animate-spin" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-slate-400">
+              <Users size={28} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No clients with portals found</p>
+            </div>
+          ) : (
+            filtered.map(([name, { token }]) => (
+              <button
+                key={token}
+                onClick={() => handleSelect(name, token)}
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors text-left"
+              >
+                <Avatar name={name} size="sm" />
+                <div>
+                  <p className="text-sm font-bold text-slate-800">{name}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">{token.substring(0, 12)}...</p>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
 
 export function ChatManager() {
   const { user } = useAuth();
@@ -14,54 +166,44 @@ export function ChatManager() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [showEmojis, setShowEmojis] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<{name: string, data: string, type: string} | null>(null);
+  const [attachedFile, setAttachedFile] = useState<{ name: string; data: string; type: string } | null>(null);
   const [sendingMsg, setSendingMsg] = useState(false);
-  
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load chat rooms for this admin
+  // ── Load Rooms ──
   useEffect(() => {
     if (!user) return;
-    
     const q = query(collection(db, 'portal_chats'), where('userId', '==', user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsub = onSnapshot(q, (snap) => {
       const data: ChatRoom[] = [];
-      snapshot.forEach(d => {
-        data.push({ id: d.id, ...d.data() } as ChatRoom);
-      });
-      
-      // Sort by latest message
+      snap.forEach(d => data.push({ id: d.id, ...d.data() } as ChatRoom));
       data.sort((a, b) => {
-        const timeA = a.lastMessageAt?.toMillis?.() || 0;
-        const timeB = b.lastMessageAt?.toMillis?.() || 0;
-        return timeB - timeA;
+        const tA = a.lastMessageAt?.toMillis?.() || 0;
+        const tB = b.lastMessageAt?.toMillis?.() || 0;
+        return tB - tA;
       });
-      
       setRooms(data);
     });
-
-    return () => unsubscribe();
+    return () => unsub();
   }, [user]);
 
-  // Load messages for active room
+  // ── Load Messages ──
   useEffect(() => {
-    if (!activeToken) {
-      setMessages([]);
-      return;
-    }
-
+    if (!activeToken) { setMessages([]); return; }
     const q = query(
       collection(db, `portal_chats/${activeToken}/messages`),
       orderBy('timestamp', 'asc')
     );
-    
-    let isInitialLoad = true;
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    let initial = true;
+    const unsub = onSnapshot(q, (snap) => {
       const msgs: ChatMessage[] = [];
-      snapshot.forEach(d => {
+      snap.forEach(d => {
         const data = d.data();
         msgs.push({
           id: d.id,
@@ -71,102 +213,76 @@ export function ChatManager() {
           timestamp: data.timestamp?.toDate?.()?.toISOString() || new Date().toISOString(),
           fileData: data.fileData,
           fileName: data.fileName,
-          fileType: data.fileType
+          fileType: data.fileType,
         });
       });
       setMessages(msgs);
-      
-      // Mark as read when active (if client sent them)
+      // Mark unread admin messages as read
       if (msgs.some(m => m.sender === 'client' && !m.isRead)) {
-        // We use the REST API to avoid complex batched writes here, but local update works too
-        // To be thorough, we would batch update isRead. For now, updating the meta is enough.
         setDoc(doc(db, 'portal_chats', activeToken), { hasUnreadAdmin: false }, { merge: true });
       }
-
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: isInitialLoad ? 'auto' : 'smooth' });
-        isInitialLoad = false;
-      }, 100);
+        messagesEndRef.current?.scrollIntoView({ behavior: initial ? 'auto' : 'smooth' });
+        initial = false;
+      }, 80);
     });
-
-    return () => unsubscribe();
+    return () => unsub();
   }, [activeToken]);
 
-  const emitTyping = (isTyping: boolean) => {
+  // ── Focus input when room opens ──
+  useEffect(() => {
+    if (activeToken) setTimeout(() => inputRef.current?.focus(), 200);
+  }, [activeToken]);
+
+  const emitTyping = useCallback((isTyping: boolean) => {
     if (!activeToken) return;
     setDoc(doc(db, 'portal_chats', activeToken), { adminTyping: isTyping }, { merge: true }).catch(() => {});
-  };
+  }, [activeToken]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
-    
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     emitTyping(true);
-    
-    typingTimeoutRef.current = setTimeout(() => {
-      emitTyping(false);
-    }, 2000);
+    typingTimeoutRef.current = setTimeout(() => emitTyping(false), 2000);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast('File is too large. Max 5MB.', 'error');
-      return;
-    }
-
+    if (file.size > 5 * 1024 * 1024) { toast('File too large. Max 5MB.', 'error'); return; }
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setAttachedFile({
-        name: file.name,
-        type: file.type,
-        data: event.target?.result as string
-      });
-    };
+    reader.onload = (ev) => setAttachedFile({ name: file.name, type: file.type, data: ev.target?.result as string });
     reader.readAsDataURL(file);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeToken || ((!newMessage.trim() && !attachedFile)) || sendingMsg) return;
-
+    if (!activeToken || (!newMessage.trim() && !attachedFile) || sendingMsg) return;
     const msgText = newMessage.trim();
     const fileToSend = attachedFile;
-    
     setNewMessage('');
     setAttachedFile(null);
     setShowEmojis(false);
     setSendingMsg(true);
     emitTyping(false);
-
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     try {
-      // Using standard Firebase connection for admin since auth operates client-side
-      const activeRoom = rooms.find(r => r.id === activeToken);
-      
       await addDoc(collection(db, `portal_chats/${activeToken}/messages`), {
         text: msgText || '',
         sender: 'admin',
         isRead: false,
         timestamp: serverTimestamp(),
-        ...(fileToSend ? { 
-          fileData: fileToSend.data, 
-          fileName: fileToSend.name, 
-          fileType: fileToSend.type 
-        } : {})
+        ...(fileToSend ? { fileData: fileToSend.data, fileName: fileToSend.name, fileType: fileToSend.type } : {}),
       });
-      
-      const snippet = msgText ? msgText.substring(0, 50) : (fileToSend?.name ? `Attachment: ${fileToSend.name}` : 'Attachment');
-      
+      const snippet = msgText || (fileToSend?.name ? `📎 ${fileToSend.name}` : 'Attachment');
       await setDoc(doc(db, 'portal_chats', activeToken), {
         lastMessage: snippet,
         lastMessageAt: serverTimestamp(),
         lastSender: 'admin',
         hasUnreadClient: true,
       }, { merge: true });
-      
     } catch (err: any) {
-      toast(err.message || 'Failed to send message.', 'error');
+      toast(err.message || 'Failed to send.', 'error');
       setNewMessage(msgText);
       if (fileToSend) setAttachedFile(fileToSend);
     } finally {
@@ -175,241 +291,369 @@ export function ChatManager() {
   };
 
   const activeRoom = rooms.find(r => r.id === activeToken);
+  const filteredRooms = rooms.filter(r =>
+    r.clientName?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const totalUnread = rooms.filter(r => r.hasUnreadAdmin).length;
 
+  // ── Render ──
   return (
-    <div className="flex h-full gap-4 relative animate-in fade-in duration-300">
-      {/* Left Sidebar: Conversations List */}
-      <div className={`w-full md:w-80 flex flex-col bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[24px] shadow-sm overflow-hidden shrink-0 transition-all ${activeToken ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
-          <div className="flex items-center gap-2 text-[#5a8c12]">
-            <MessageSquare size={18} />
-            <h2 className="font-bold text-slate-800 dark:text-slate-100">Inbox</h2>
+    <div className="flex h-full gap-0 overflow-hidden bg-white dark:bg-slate-900 rounded-[24px] border-2 border-slate-100 dark:border-slate-800 shadow-sm">
+
+      {/* ── LEFT: Rooms Sidebar ── */}
+      <div className={`
+        w-full md:w-[320px] flex flex-col border-r border-slate-100 dark:border-slate-800 shrink-0 overflow-hidden
+        ${activeToken ? 'hidden md:flex' : 'flex'}
+      `}>
+        {/* Header */}
+        <div className="px-5 pt-5 pb-3 shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">Inbox</h2>
+              {totalUnread > 0 && (
+                <span className="bg-[#5a8c12] text-white text-[10px] font-black min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center animate-pulse">
+                  {totalUnread}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setShowNewChat(true)}
+              className="w-9 h-9 bg-[#5a8c12] hover:bg-[#4a730f] text-white rounded-xl flex items-center justify-center transition-colors shadow-md shadow-[#5a8c12]/20"
+              title="Start new chat"
+            >
+              <Plus size={16} />
+            </button>
           </div>
-          <span className="text-xs font-bold bg-[#5a8c12] text-white px-2 py-0.5 rounded-full">
-            {rooms.length} Active
-          </span>
+
+          {/* Search */}
+          <div className="relative">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl pl-8 pr-4 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#5a8c12]/20 focus:border-[#5a8c12]/40 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+            />
+          </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-          {rooms.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400 p-6 text-center">
-              <MessageSquare size={32} className="mb-3 opacity-20" />
-              <p className="text-sm font-semibold text-slate-500">No active chats</p>
-              <p className="text-xs mt-1">Chats appear when clients open their portal or message you.</p>
+
+        {/* Room List */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4">
+          {filteredRooms.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-16 px-6">
+              <div className="w-14 h-14 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4">
+                <MessageSquare size={20} className="text-slate-300 dark:text-slate-600" />
+              </div>
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">No conversations yet</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">Press + to start a chat with any client who has a portal</p>
+              <button
+                onClick={() => setShowNewChat(true)}
+                className="flex items-center gap-2 bg-[#5a8c12]/10 hover:bg-[#5a8c12]/20 text-[#5a8c12] text-xs font-black uppercase tracking-widest px-4 py-2.5 rounded-xl transition-colors"
+              >
+                <Plus size={14} /> New Chat
+              </button>
             </div>
           ) : (
-            rooms.map((room) => (
-              <button
-                key={room.id}
-                onClick={() => setActiveToken(room.id)}
-                className={`w-full flex items-start gap-3 p-3 rounded-[16px] text-left transition-all ${
-                  activeToken === room.id 
-                    ? 'bg-[#5a8c12]/10 dark:bg-[#5a8c12]/20 border border-[#5a8c12]/20 dark:border-[#5a8c12]/30' 
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent'
-                }`}
-              >
-                <div className="relative">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${room.hasUnreadAdmin ? 'bg-[#5a8c12] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
-                    <span className="font-black text-sm uppercase">
-                      {room.clientName?.charAt(0) || '?'}
-                    </span>
+            filteredRooms.map((room) => {
+              const isActive = activeToken === room.id;
+              const isOnline = room.clientOnline === true;
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => setActiveToken(room.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all mb-1 ${
+                    isActive
+                      ? 'bg-[#5a8c12]/8 border border-[#5a8c12]/15 dark:bg-[#5a8c12]/15'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent'
+                  }`}
+                >
+                  <Avatar name={room.clientName || '?'} online={isOnline} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`text-sm truncate pr-2 ${room.hasUnreadAdmin ? 'font-black text-slate-900 dark:text-slate-100' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
+                        {room.clientName || 'Unknown'}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                        {formatRoomTime(room.lastMessageAt)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={`text-xs truncate ${room.hasUnreadAdmin ? 'font-semibold text-slate-700 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {room.clientTyping ? (
+                          <span className="text-[#5a8c12] font-bold italic flex items-center gap-1">
+                            <span className="flex gap-0.5">
+                              <span className="w-1 h-1 bg-[#5a8c12] rounded-full animate-bounce [animation-delay:0ms]" />
+                              <span className="w-1 h-1 bg-[#5a8c12] rounded-full animate-bounce [animation-delay:150ms]" />
+                              <span className="w-1 h-1 bg-[#5a8c12] rounded-full animate-bounce [animation-delay:300ms]" />
+                            </span>
+                            typing
+                          </span>
+                        ) : (
+                          <>
+                            {room.lastSender === 'admin' && <span className="text-slate-400">You: </span>}
+                            {room.lastMessage || <span className="italic text-slate-400">No messages yet</span>}
+                          </>
+                        )}
+                      </p>
+                      {room.hasUnreadAdmin && (
+                        <span className="w-2.5 h-2.5 bg-[#5a8c12] rounded-full shrink-0 animate-pulse" />
+                      )}
+                    </div>
                   </div>
-                  {room.hasUnreadAdmin && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse" />
-                  )}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className={`text-sm truncate pr-2 ${room.hasUnreadAdmin ? 'font-black text-slate-900 dark:text-slate-100' : 'font-bold text-slate-700 dark:text-slate-300'}`}>
-                      {room.clientName || 'Unknown Client'}
-                    </h3>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest shrink-0">
-                      {room.lastMessageAt ? format(room.lastMessageAt.toMillis ? room.lastMessageAt.toMillis() : Date.now(), 'MMM d') : ''}
-                    </span>
-                  </div>
-                  <p className={`text-xs truncate max-w-full mt-0.5 ${room.hasUnreadAdmin ? 'font-semibold text-slate-800 dark:text-slate-200' : 'text-slate-500'}`}>
-                    {room.clientTyping ? (
-                      <span className="text-[#5a8c12] font-bold italic">Typing...</span>
-                    ) : (
-                      <>{room.lastSender === 'admin' ? 'You: ' : ''}{room.lastMessage || 'No messages yet'}</>
-                    )}
-                  </p>
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </div>
       </div>
 
-      {/* Right Sidebar: Chat Area */}
-      <div className={`flex-1 flex flex-col bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[24px] shadow-sm overflow-hidden transition-all ${!activeToken ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
+      {/* ── RIGHT: Chat Area ── */}
+      <div className={`flex-1 flex flex-col overflow-hidden ${!activeToken ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
         {!activeToken || !activeRoom ? (
-          <div className="text-center p-8 max-w-sm">
-            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <MessageSquare size={24} />
+          /* Empty State */
+          <div className="text-center px-8 max-w-xs">
+            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-5">
+              <MessageSquare size={30} className="text-slate-200 dark:text-slate-700" />
             </div>
-            <h3 className="text-lg font-black text-slate-700 dark:text-slate-300 mb-2">Select a Conversation</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Choose a client from the Inbox list to view your chat history and reply instantly.</p>
+            <h3 className="text-lg font-black text-slate-700 dark:text-slate-300 mb-2">Select a conversation</h3>
+            <p className="text-sm text-slate-400 dark:text-slate-500 mb-6">Pick a client from the inbox, or start a new chat to reach out directly.</p>
+            <button
+              onClick={() => setShowNewChat(true)}
+              className="inline-flex items-center gap-2 bg-[#5a8c12] hover:bg-[#4a730f] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl transition-colors shadow-lg shadow-[#5a8c12]/20"
+            >
+              <Plus size={14} /> New Chat
+            </button>
           </div>
         ) : (
           <>
-            {/* Chat Header */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 bg-white dark:bg-slate-900 shrink-0">
-              <button 
-                onClick={() => setActiveToken(null)}
-                className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600"
-              >
-                <ChevronRight size={16} className="rotate-180" />
-              </button>
-              <div className="w-10 h-10 rounded-xl bg-[#5a8c12]/10 dark:bg-[#5a8c12]/20 flex items-center justify-center text-[#5a8c12] shrink-0 font-black">
-                {activeRoom.clientName?.charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-black text-slate-900 dark:text-slate-100 truncate">{activeRoom.clientName}</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  PORTAL TOKEN: {activeToken.substring(0,8)}...
-                </p>
-              </div>
-              <div className="flex gap-2 hidden sm:flex">
-                <a 
-                  href={`/portal/${activeToken}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors"
+            {/* ── Chat Header ── */}
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+              <div className="flex items-center gap-3">
+                {/* Back button (mobile) */}
+                <button
+                  onClick={() => setActiveToken(null)}
+                  className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 >
-                  View Portal
-                </a>
+                  <ChevronLeft size={18} />
+                </button>
+
+                <Avatar name={activeRoom.clientName || '?'} online={activeRoom.clientOnline} size="md" />
+
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-black text-slate-900 dark:text-slate-100 truncate leading-tight">
+                    {activeRoom.clientName}
+                  </h3>
+                  <div className="flex items-center gap-1.5">
+                    {activeRoom.clientTyping ? (
+                      <span className="text-[11px] text-[#5a8c12] font-bold italic">typing...</span>
+                    ) : activeRoom.clientOnline ? (
+                      <span className="flex items-center gap-1 text-[11px] text-emerald-500 font-bold">
+                        <Circle size={6} className="fill-emerald-400" /> Online now
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 font-medium">
+                        {formatLastSeen(activeRoom.clientLastSeen)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`/portal/${activeToken}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-colors border border-slate-100 dark:border-slate-700"
+                  >
+                    <ExternalLink size={12} /> View Portal
+                  </a>
+                </div>
               </div>
             </div>
 
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-4">
-              <div className="text-center py-4">
-                <div className="inline-block bg-slate-200/50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-2">
-                  Conversation Started
+            {/* ── Messages ── */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-1 bg-slate-50/40 dark:bg-slate-900/40">
+              {messages.length === 0 && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
+                  <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-3 shadow-sm border border-slate-100 dark:border-slate-700">
+                    <MessageSquare size={18} className="text-slate-300" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">No messages yet</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Send the first message to get the conversation started.</p>
                 </div>
-              </div>
-              
-              {messages.map(msg => {
-                const isAdmin = msg.sender === 'admin';
+              )}
+
+              {/* Group messages by date */}
+              {messages.reduce((groups: { date: string; msgs: ChatMessage[] }[], msg) => {
+                const d = format(new Date(msg.timestamp), 'yyyy-MM-dd');
+                if (!groups.length || groups[groups.length - 1].date !== d) {
+                  groups.push({ date: d, msgs: [msg] });
+                } else {
+                  groups[groups.length - 1].msgs.push(msg);
+                }
+                return groups;
+              }, []).map(({ date, msgs: dayMsgs }) => {
+                const dateLabel = isToday(new Date(date)) ? 'Today' :
+                  isYesterday(new Date(date)) ? 'Yesterday' :
+                  format(new Date(date), 'MMMM d, yyyy');
                 return (
-                  <div key={msg.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm shadow-sm ${
-                      isAdmin 
-                        ? 'bg-[#5a8c12] text-white rounded-br-sm' 
-                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-sm'
-                    }`}>
-                      <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                      
-                      {msg.fileName && msg.fileData && (
-                        <div className={`mt-2 p-2 rounded-xl border flex items-center gap-3 ${isAdmin ? 'bg-black/10 border-transparent' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}>
-                          {msg.fileType?.startsWith('image/') ? (
-                            <img src={msg.fileData} alt={msg.fileName} className="w-16 h-16 object-cover rounded-lg shadow-sm" />
-                          ) : (
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isAdmin ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-                              <Paperclip size={14} />
+                  <div key={date}>
+                    {/* Date separator */}
+                    <div className="flex items-center gap-3 py-4">
+                      <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1 bg-white dark:bg-slate-800 rounded-full border border-slate-100 dark:border-slate-700">
+                        {dateLabel}
+                      </span>
+                      <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
+                    </div>
+
+                    {dayMsgs.map((msg, i) => {
+                      const isAdmin = msg.sender === 'admin';
+                      const nextMsg = dayMsgs[i + 1];
+                      const isSameNext = nextMsg?.sender === msg.sender;
+                      const showTime = !isSameNext;
+
+                      return (
+                        <div key={msg.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} ${isSameNext ? 'mb-0.5' : 'mb-3'}`}>
+                          <div className={`max-w-[72%] flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`}>
+                            <div className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
+                              isAdmin
+                                ? 'bg-[#5a8c12] text-white rounded-br-md'
+                                : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-bl-md'
+                            }`}>
+                              {msg.text && <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>}
+
+                              {/* File attachment */}
+                              {msg.fileName && msg.fileData && (
+                                <div className={`${msg.text ? 'mt-2' : ''} rounded-xl overflow-hidden border ${isAdmin ? 'border-white/20' : 'border-slate-100 dark:border-slate-700'}`}>
+                                  {msg.fileType?.startsWith('image/') ? (
+                                    <img src={msg.fileData} alt={msg.fileName} className="w-full max-w-[220px] h-auto object-cover" />
+                                  ) : (
+                                    <div className={`p-3 flex items-center gap-3 ${isAdmin ? 'bg-black/10' : 'bg-slate-50 dark:bg-slate-900'}`}>
+                                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isAdmin ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                                        <Paperclip size={14} className={isAdmin ? 'text-white' : 'text-slate-500'} />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold truncate">{msg.fileName}</p>
+                                        <a href={msg.fileData} download={msg.fileName} className={`text-[10px] font-black hover:underline ${isAdmin ? 'text-white/80' : 'text-[#5a8c12]'}`}>
+                                          Download
+                                        </a>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold truncate">{msg.fileName}</p>
-                            <a href={msg.fileData} download={msg.fileName} className={`text-[10px] uppercase font-black hover:underline mt-0.5 block ${isAdmin ? 'text-white/80' : 'text-[#5a8c12]'}`}>
-                              Download File
-                            </a>
+
+                            {/* Timestamp + read receipt */}
+                            {showTime && (
+                              <div className={`flex items-center gap-1 mt-1 px-1 ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  {format(new Date(msg.timestamp), 'h:mm a')}
+                                </span>
+                                {isAdmin && (
+                                  <CheckCheck
+                                    size={12}
+                                    className={msg.isRead ? 'text-[#5a8c12]' : 'text-slate-300'}
+                                    strokeWidth={2.5}
+                                  />
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
-                      )}
-
-                      <div className={`flex items-center gap-1 mt-1.5 justify-end`}>
-                        <span className={`text-[9px] font-bold uppercase tracking-wider ${isAdmin ? 'text-white/60' : 'text-slate-400'}`}>
-                          {format(new Date(msg.timestamp), 'h:mm a')}
-                        </span>
-                        {isAdmin && (
-                          <CheckCircle2 size={10} className={msg.isRead ? 'text-white' : 'text-white/40'} />
-                        )}
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 );
               })}
-              
+
+              {/* Typing indicator */}
               {activeRoom.clientTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5 w-16">
+                <div className="flex justify-start mb-3">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-slate-300 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
                     <span className="w-2 h-2 bg-slate-300 dark:bg-slate-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
                     <span className="w-2 h-2 bg-slate-300 dark:bg-slate-500 rounded-full animate-bounce" />
                   </div>
                 </div>
               )}
-              
-              <div ref={messagesEndRef} className="h-1" />
+
+              <div ref={messagesEndRef} className="h-2" />
             </div>
 
-            {/* Input Area */}
-            <div className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 p-3 shrink-0 rounded-b-[24px]">
+            {/* ── Input Area ── */}
+            <div className="shrink-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-4 py-3">
+              {/* Attached file preview */}
               {attachedFile && (
                 <div className="mb-2 flex items-center gap-2">
-                  <div className="bg-[#5a8c12]/10 border border-[#5a8c12]/20 rounded-xl px-3 py-1.5 flex items-center gap-2 max-w-full">
-                    <Paperclip size={12} className="text-[#5a8c12] shrink-0" />
-                    <span className="text-xs font-bold text-[#5a8c12] dark:text-[#7bb024] truncate">{attachedFile.name}</span>
-                    <button onClick={() => setAttachedFile(null)} className="text-[#5a8c12]/70 hover:text-[#5a8c12] shrink-0 ml-1">
+                  <div className="flex-1 bg-[#5a8c12]/8 border border-[#5a8c12]/20 rounded-xl px-3 py-2 flex items-center gap-2">
+                    {attachedFile.type.startsWith('image/') ? (
+                      <ImageIcon size={14} className="text-[#5a8c12] shrink-0" />
+                    ) : (
+                      <Paperclip size={14} className="text-[#5a8c12] shrink-0" />
+                    )}
+                    <span className="text-xs font-bold text-[#5a8c12] truncate flex-1">{attachedFile.name}</span>
+                    <button onClick={() => setAttachedFile(null)} className="text-[#5a8c12]/60 hover:text-[#5a8c12] shrink-0">
                       <X size={14} />
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* Emoji picker */}
               {showEmojis && (
-                <div className="py-2 mb-2 border-b border-slate-50 dark:border-slate-800/50 flex gap-2 overflow-x-auto custom-scrollbar">
-                  {['👍', '🔥', '✅', '🙌', '🚀', '👀', '💡', '💯', '🤔', '👋'].map(emoji => (
-                    <button 
-                      key={emoji} 
-                      type="button"
-                      onClick={() => { setNewMessage(prev => prev + emoji); setShowEmojis(false); }}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700 shrink-0 text-lg transition-transform hover:scale-110"
+                <div className="mb-2 flex gap-1.5 overflow-x-auto custom-scrollbar py-1">
+                  {['👍','🔥','✅','🙌','🚀','👀','💡','💯','🤔','👋','❤️','😊','🎉','⚡','🛠️'].map(e => (
+                    <button
+                      key={e}
+                      onClick={() => { setNewMessage(p => p + e); setShowEmojis(false); }}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 shrink-0 text-lg transition-transform hover:scale-110"
                     >
-                      {emoji}
+                      {e}
                     </button>
                   ))}
                 </div>
               )}
 
-              <form onSubmit={handleSendMessage} className="flex flex-col sm:flex-row items-end sm:items-center gap-2 relative">
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
-                
-                <div className="flex gap-1">
-                  <button 
-                    type="button"
-                    onClick={() => setShowEmojis(!showEmojis)}
-                    className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-                  >
-                    <Smile size={20} />
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-                  >
-                    <Paperclip size={20} />
-                  </button>
-                </div>
 
-                <div className="relative flex-1 w-full bg-slate-50 dark:bg-slate-950 rounded-xl border-2 border-slate-100 dark:border-slate-800 focus-within:border-[#5a8c12]/50 dark:focus-within:border-[#5a8c12]/50 transition-all flex items-center pr-2 pl-4 py-1">
-                  <input 
+                <button
+                  type="button"
+                  onClick={() => setShowEmojis(s => !s)}
+                  className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 transition-colors"
+                >
+                  <Smile size={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 transition-colors"
+                >
+                  <Paperclip size={20} />
+                </button>
+
+                <div className="flex-1 relative bg-slate-50 dark:bg-slate-800/80 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus-within:border-[#5a8c12]/50 focus-within:bg-white dark:focus-within:bg-slate-800 transition-all flex items-center gap-2 pl-4 pr-2 py-1">
+                  <input
+                    ref={inputRef}
                     type="text"
                     value={newMessage}
                     onChange={handleInputChange}
-                    placeholder="Type your message..."
-                    className="w-full bg-transparent border-none py-2 text-sm focus:outline-none dark:text-slate-100 placeholder:text-slate-400 font-medium disabled:opacity-50"
+                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage(e as any)}
+                    placeholder={`Message ${activeRoom.clientName}...`}
+                    className="flex-1 bg-transparent border-none py-2 text-sm focus:outline-none dark:text-slate-100 placeholder:text-slate-400 font-medium disabled:opacity-50"
                     disabled={sendingMsg}
                   />
-                  <button 
+                  <button
                     type="submit"
                     disabled={(!newMessage.trim() && !attachedFile) || sendingMsg}
-                    className="w-8 h-8 shrink-0 bg-[#5a8c12] text-white rounded-lg flex items-center justify-center hover:bg-[#4a730f] transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-[#5a8c12]/20 translate-x-1"
+                    className="w-9 h-9 shrink-0 bg-[#5a8c12] hover:bg-[#4a730f] text-white rounded-xl flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-[#5a8c12]/20 active:scale-95"
                   >
-                    {sendingMsg ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send size={14} className="translate-x-[1px]" />}
+                    {sendingMsg
+                      ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <Send size={15} className="translate-x-px" />
+                    }
                   </button>
                 </div>
               </form>
@@ -417,6 +661,15 @@ export function ChatManager() {
           </>
         )}
       </div>
+
+      {/* ── New Chat Modal ── */}
+      {showNewChat && user && (
+        <NewChatModal
+          userId={user.uid}
+          onClose={() => setShowNewChat(false)}
+          onOpen={(token) => setActiveToken(token)}
+        />
+      )}
     </div>
   );
 }

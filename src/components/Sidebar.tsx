@@ -14,6 +14,7 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
   const [openClients, setOpenClients] = useState<Record<string, boolean>>({});
   const [openPlatforms, setOpenPlatforms] = useState<Record<string, boolean>>({});
   const [newMatchesCounts, setNewMatchesCounts] = useState<Record<string, number>>({});
+  const [unreadInbox, setUnreadInbox] = useState(0);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -38,6 +39,19 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Live unread inbox badge
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const q = query(
+      collection(db, 'portal_chats'),
+      where('userId', '==', user.uid),
+      where('hasUnreadAdmin', '==', true)
+    );
+    const unsub = onSnapshot(q, (snap) => setUnreadInbox(snap.size));
+    return () => unsub();
   }, []);
 
   const groupedScrapers = useMemo(() => {
@@ -126,8 +140,18 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
               <>
                 <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${isActive ? 'bg-[#5a8c12] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}`}>
                   <Icons.MessageSquare size={16} strokeWidth={1.5} />
+                  {unreadInbox > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 animate-pulse">
+                      {unreadInbox}
+                    </span>
+                  )}
                 </div>
                 Inbox
+                {unreadInbox > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
+                    {unreadInbox}
+                  </span>
+                )}
               </>
             )}
           </NavLink>
