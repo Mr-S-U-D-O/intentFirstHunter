@@ -129,6 +129,94 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 8080;
 
+  // ── SEO Infrastructure ─────────────────────────────────────────────────────
+
+  // GET /robots.txt — focus crawl budget on public money pages only
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain");
+    res.send(
+      [
+        "User-agent: *",
+        "Allow: /",
+        "Allow: /intercept/",
+        "Disallow: /portal/",
+        "Disallow: /scraper/",
+        "Disallow: /inbox",
+        "Disallow: /crm",
+        "Disallow: /logs",
+        "Disallow: /api/",
+        "Disallow: /privacy",
+        "",
+        `Sitemap: https://bepreemptly.com/sitemap.xml`,
+      ].join("\n")
+    );
+  });
+
+  // GET /sitemap.xml — auto-generated from all pSEO slugs; submit to Search Console
+  app.get("/sitemap.xml", (_req, res) => {
+    const BASE = "https://bepreemptly.com";
+    const now = new Date().toISOString();
+
+    // All pSEO slugs — keep in sync with src/data/pseo.ts
+    const intercepts = [
+      // Industry / Persona pages
+      "marketing-agencies-for-founders-on-reddit",
+      "marketing-agencies-for-cmos-on-reddit",
+      "design-agencies-on-stackoverflow",
+      "enterprise-software-for-ctos-on-reddit",
+      "enterprise-software-for-operations-directors-on-reddit",
+      "saas-infrastructure-for-lead-engineers-on-stackoverflow",
+      "saas-infrastructure-for-architects-on-stackoverflow",
+      "boutique-recruitment-for-hiring-managers-on-reddit",
+      "boutique-recruitment-for-founders-on-reddit",
+      "specialized-hiring-on-stackoverflow",
+      "financial-advisors-for-hnwi-on-reddit",
+      "financial-advisors-for-startup-founders-on-reddit",
+      "legal-tech-advisors-for-tech-founders-on-stackoverflow",
+      "legal-tech-advisors-for-data-officers-on-stackoverflow",
+      "digital-real-estate-for-portfolio-investors-on-reddit",
+      "digital-real-estate-for-ecom-owners-on-reddit",
+      "proptech-on-stackoverflow",
+      // Question-intent pages (Strategy 3)
+      "how-to-find-clients-on-reddit",
+      "how-to-monitor-reddit-for-leads",
+      "how-to-get-customers-from-reddit",
+      "reddit-lead-generation-tool",
+      "reddit-monitoring-for-agencies",
+      "reddit-social-listening-b2b",
+      "how-to-track-reddit-mentions",
+      "reddit-intent-signals-b2b",
+      "how-to-find-saas-customers-reddit",
+      "reddit-comment-marketing-strategy",
+      "best-subreddits-for-b2b-leads",
+      "reddit-vs-linkedin-outreach",
+      "how-brands-use-reddit-marketing",
+      "reddit-keyword-alert-tool",
+      "monitor-reddit-for-competitors",
+      "find-high-intent-reddit-posts",
+      "reddit-buyer-intent-signals",
+      "reddit-lead-monitoring-automation",
+      "best-way-to-respond-to-reddit-leads",
+      "why-reddit-beats-cold-email-for-b2b",
+      "reddit-monitoring-saas-founders",
+    ];
+
+    const urlNodes = [
+      // Homepage — highest priority
+      `<url><loc>${BASE}/</loc><lastmod>${now}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+      // intercept pages
+      ...intercepts.map(
+        (slug) =>
+          `<url><loc>${BASE}/intercept/${slug}</loc><lastmod>${now}</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>`
+      ),
+    ];
+
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlNodes.join("\n")}\n</urlset>`
+    );
+  });
+
   // API routes FIRST
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -490,57 +578,71 @@ async function startServer() {
       }
 
       // 5. Build the Generation Prompt
-      // Philosophy: Genuine expert first, business owner second.
-      // Lead with value. Never use corporate "At X, we..." framing.
+      // Philosophy: Be the smartest person in the thread, not a sales rep.
+      // The comment must FIRST earn trust through real expertise, THEN softly signal the business.
       const toneGuide = scraper.clientTone === 'professional'
-        ? 'Direct, precise, and knowledgeable. No fluff.'
+        ? 'Direct, authoritative, and precise. Assume the reader is smart. No corporate fluff, no pep-talk language.'
         : scraper.clientTone === 'technical'
-        ? 'Peer-to-peer, technical depth, skip basics.'
-        : 'Warm, conversational, and genuinely helpful.';
+        ? 'Peer-to-peer, technical depth. Skip the basics — assume competence. Use correct terminology, acknowledge trade-offs.'
+        : 'Warm, conversational, and genuinely helpful. Sound like a knowledgeable friend, not a consultant.';
 
-      const prompt = `You are a knowledgeable expert and practitioner in the field of "${scraper.clientSells || 'professional services'}".
+      const prompt = `You are a seasoned practitioner and genuine expert in the field of "${scraper.clientSells || 'professional services'}". You are not a marketer. You are someone who has done this work for years and can speak with real authority.
 
-YOUR BACKGROUND (use this to inform your perspective, not to advertise):
-- What you do: ${scraper.clientDoes || 'You have deep experience solving problems in this industry.'}
-- Business name: ${scraper.clientName || 'your business'}
-- Type: ${scraper.isSoloFreelancer ? 'Independent specialist' : 'Agency/Team'}
+YOUR CONTEXT (use to shape your perspective and expertise — do NOT advertise or pitch):
+- Your speciality: ${scraper.clientSells || 'professional services'}
+- What you actually do day-to-day: ${scraper.clientDoes || 'Deep hands-on work solving real problems in this industry.'}
+- Operating as: ${scraper.isSoloFreelancer ? 'an independent specialist' : `a team at ${scraper.clientName || 'your company'}`}
 
-POST YOU ARE RESPONDING TO:
-Title: ${leadData.postTitle}
-Content: ${leadData.postContent ? leadData.postContent.substring(0, 1000) : 'N/A'}
+THE POST YOU ARE RESPONDING TO:
+Title: "${leadData.postTitle}"
+Content: ${leadData.postContent ? leadData.postContent.substring(0, 1500) : '(No body — respond to the title alone)'}
 
-YOUR TASK: Write a 3-beat comment that feels like it came from a real person, not a marketing department.
+YOUR MISSION:
+Write a substantive, helpful comment (aim for 150–250 words) that makes the original poster feel like they just got advice from someone who truly knows this space — not someone trying to sell them something.
 
-BEAT 1 — DIRECT INSIGHT (1-2 sentences):
-Directly address the specific problem, question, or frustration in the post. Be specific to what THEY said. Demonstrate you actually read and understood it.
+STRUCTURE YOUR RESPONSE IN 4 PARTS (write as continuous flowing prose, no labels, no bullet points):
 
-BEAT 2 — ADD DEPTH (1-2 sentences):
-Give a concrete tip, a nuance, or a "the thing people miss here is..." observation that adds genuine value beyond what's obvious. This is where you show expertise through knowledge, not credentials.
+PART 1 — DIAGNOSE (2-3 sentences):
+Directly address the specific pain, question, or frustration raised. Show you actually read and understood the nuances of what they said. Call out the real underlying issue if there is one — the thing they might not have articulated perfectly but that any expert would immediately recognise. Be specific to THEIR situation, not generic.
 
-BEAT 3 — SOFT BRAND SIGNAL (1 sentence, optional but preferred):
-Here you may naturally weave in what your business does — but ONLY if it connects to what you just said. This must feel like a person casually mentioning their work after genuinely helping, not a pitch. 
-- GOOD: "This is actually the kind of problem we spend most of our time solving for [type of client]."
-- GOOD: "Happy to share how we approach this if it's useful."
-- GOOD: "It's why we built [business name] around [relevant principle]."
-- BAD: "At ${scraper.clientName || 'our company'}, we offer..." 
-- BAD: Any sentence that could appear in an ad.
-- OMIT this beat entirely if it doesn't fit naturally — a forced mention is worse than none.
+PART 2 — THE MEAT (3-5 sentences):
+This is the core of your response. Give genuinely useful, actionable insight. Include at least ONE of the following:
+  - A "the thing most people miss here is..." observation
+  - A concrete step, framework, or mental model they can apply immediately
+  - A common mistake or misconception you've seen people make in this situation, and why
+  - A nuance or trade-off that changes HOW they should think about this problem
+Do not be vague. Specific > general. Real-world > theoretical.
 
-HARD RULES:
-- BANNED PHRASES: "At ${scraper.clientName || 'our company'}, we...", "our approach", "our process", "as a company", "feel free to reach out"
-- Do NOT start with "I" 
+PART 3 — DEPTH AND CREDIBILITY (2-3 sentences):
+Add a layer of depth that signals real-world experience. This could be: edge cases to watch for, a counter-intuitive truth about this domain, something that works in theory but fails in practice, or a more advanced consideration they should factor in once they've handled the basics. This is what separates a genuine expert from someone who just read a blog post.
+
+PART 4 — SOFT BRAND SIGNAL (1-2 sentences, ONLY if it fits naturally):
+If — and only if — it feels completely natural given what you just wrote, casually mention how your work relates. This must feel like a practitioner incidentally mentioning their background, not a pitch. The test: would this sentence feel out of place at a dinner party? If yes, cut it.
+- GOOD: "This is honestly the exact kind of problem we run into most with [type of client we work with]."
+- GOOD: "Happy to go deeper on [specific aspect] if useful — it's something we've had to work out the hard way."
+- GOOD: "It's actually part of why [business name] focuses specifically on [relevant principle or approach]."
+- BAD: "At ${scraper.clientName || 'our company'}, we offer..."
+- BAD: Any sentence that could be copy-pasted into a LinkedIn ad.
+- OMIT this part entirely if it doesn't fit — a forced mention destroys all the credibility you just built.
+
+ABSOLUTE RULES:
+- BANNED OPENERS: "Great question", "This is such a common issue", "I totally understand", "As someone who...", "In my experience..." — these are hollow filler. Start with substance.
+- Do NOT start the comment with the word "I"
+- Do NOT use bullet points or numbered lists — write in natural flowing prose
+- Do NOT use corporate speak: "leverage", "synergy", "circle back", "our approach", "our process", "feel free to reach out", "as a company"
+- BANNED PHRASES: "At ${scraper.clientName || 'our company'}, we...", "we specialize in", "our team"
 - TONE: ${toneGuide}
-- Do NOT use bullet points in your reply — write in flowing, natural prose.
+- LENGTH: Aim for 150–250 words. Too short = unhelpful. Too long = walls of text.
 
-Return ONLY the comment text. No labels, no preamble, no quotes.`;
+Return ONLY the comment text. No labels, no intro, no quotes around it.`;
 
 
       const aiResponse = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
-          maxOutputTokens: 880,
-          temperature: 0.85,
+          maxOutputTokens: 2000,
+          temperature: 0.75,
         }
       });
 
@@ -896,6 +998,56 @@ Return ONLY the comment text. No labels, no preamble, no quotes.`;
       
       res.json({ success: true });
     } catch {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // DELETE /api/portal/:token/chat/messages/:msgId - Delete single message
+  app.delete("/api/portal/:token/chat/messages/:msgId", async (req, res) => {
+    const { token, msgId } = req.params;
+    try {
+      // Verify token
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .limit(1)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      await adminDb.collection('portal_chats').doc(token).collection('messages').doc(msgId).delete();
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // DELETE /api/portal/:token/chat - Delete whole chat
+  app.delete("/api/portal/:token/chat", async (req, res) => {
+    const { token } = req.params;
+    try {
+      const scrapersSnap = await adminDb.collection('scrapers')
+        .where('portalToken', '==', token)
+        .limit(1)
+        .get();
+
+      if (scrapersSnap.empty) {
+        return res.status(404).json({ error: "Portal not found" });
+      }
+
+      // 1. Delete messages
+      const msgsRef = adminDb.collection('portal_chats').doc(token).collection('messages');
+      const msgsSnap = await msgsRef.get();
+      const batch = adminDb.batch();
+      msgsSnap.docs.forEach((d: any) => batch.delete(d.ref));
+      await batch.commit();
+
+      // 2. Delete room doc
+      await adminDb.collection('portal_chats').doc(token).delete();
+      
+      res.json({ success: true });
+    } catch (error: any) {
       res.status(500).json({ error: "Internal server error" });
     }
   });

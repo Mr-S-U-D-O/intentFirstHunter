@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   collection, query, where, onSnapshot, doc, orderBy,
-  setDoc, addDoc, serverTimestamp, getDoc, getDocs
+  setDoc, addDoc, serverTimestamp, getDoc, getDocs, deleteDoc, writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from './AuthProvider';
@@ -9,10 +9,12 @@ import { ChatRoom, ChatMessage, Scraper } from '../types';
 import {
   MessageSquare, Send, Smile, Paperclip, CheckCheck,
   ChevronLeft, X, Plus, Search, Circle, ExternalLink,
-  Clock, Users, Wifi, WifiOff, MoreVertical, Image as ImageIcon
+  Clock, Users, Wifi, WifiOff, MoreVertical, Image as ImageIcon,
+  Trash2, AlertCircle
 } from 'lucide-react';
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 import { toast } from './ui/toast';
+import { ConfirmModal } from './ConfirmModal';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -168,8 +170,10 @@ export function ChatManager() {
   const [showEmojis, setShowEmojis] = useState(false);
   const [attachedFile, setAttachedFile] = useState<{ name: string; data: string; type: string } | null>(null);
   const [sendingMsg, setSendingMsg] = useState(false);
-  const [showNewChat, setShowNewChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showDeleteRoom, setShowDeleteRoom] = useState(false);
+  const [deletingRoom, setDeletingRoom] = useState(false);
+  const [deletingMsg, setDeletingMsg] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -287,6 +291,39 @@ export function ChatManager() {
       if (fileToSend) setAttachedFile(fileToSend);
     } finally {
       setSendingMsg(false);
+    }
+  };
+
+  const handleLevelDeleteRoom = async () => {
+    if (!activeToken) return;
+    setDeletingRoom(true);
+    try {
+      // 1. Delete all messages first (batch delete)
+      const msgsRef = collection(db, `portal_chats/${activeToken}/messages`);
+      const msgsSnap = await getDocs(msgsRef);
+      const batch = writeBatch(db);
+      msgsSnap.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+
+      // 2. Delete the room
+      await deleteDoc(doc(db, 'portal_chats', activeToken));
+      
+      setActiveToken(null);
+      toast('Chat deleted permanently.');
+    } catch (err: any) {
+      toast('Failed to delete chat.', 'error');
+    } finally {
+      setDeletingRoom(false);
+      setShowDeleteRoom(false);
+    }
+  };
+
+  const handleDeleteMessage = async (msgId: string) => {
+    if (!activeToken) return;
+    try {
+      await deleteDoc(doc(db, `portal_chats/${activeToken}/messages`, msgId));
+    } catch (err: any) {
+      toast('Failed to delete message.', 'error');
     }
   };
 
@@ -467,6 +504,13 @@ export function ChatManager() {
                   >
                     <ExternalLink size={12} /> View Portal
                   </a>
+                  <button
+                    onClick={() => setShowDeleteRoom(true)}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                    title="Delete entire chat"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -514,7 +558,7 @@ export function ChatManager() {
                       const showTime = !isSameNext;
 
                       return (
-                        <div key={msg.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} ${isSameNext ? 'mb-0.5' : 'mb-3'}`}>
+                        <div key={msg.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'} ${isSameNext ? 'mb-0.5' : 'mb-3'} group/msg relative`}>
                           <div className={`max-w-[72%] flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`}>
                             <div className={`px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
                               isAdmin
@@ -523,7 +567,6 @@ export function ChatManager() {
                             }`}>
                               {msg.text && <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>}
 
-                              {/* File attachment */}
                               {msg.fileName && msg.fileData && (
                                 <div className={`${msg.text ? 'mt-2' : ''} rounded-xl overflow-hidden border ${isAdmin ? 'border-white/20' : 'border-slate-100 dark:border-slate-700'}`}>
                                   {msg.fileType?.startsWith('image/') ? (
@@ -543,6 +586,17 @@ export function ChatManager() {
                                   )}
                                 </div>
                               )}
+
+                              {/* Message Delete Button (Admin Only or Any for now) */}
+                              <div className={`absolute top-0 ${isAdmin ? '-left-8' : '-right-8'} top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity`}>
+                                <button
+                                  onClick={() => handleDeleteMessage(msg.id)}
+                                  className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                  title="Delete message"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
                             </div>
 
                             {/* Timestamp + read receipt */}
@@ -670,6 +724,17 @@ export function ChatManager() {
           onOpen={(token) => setActiveToken(token)}
         />
       )}
+
+      {/* Delete Room Confirmation */}
+      <ConfirmModal
+        open={showDeleteRoom}
+        onOpenChange={setShowDeleteRoom}
+        title="Delete Conversation?"
+        description="This will permanently delete this entire chat history for both you and the client. This action cannot be undone."
+        confirmText={deletingRoom ? "Deleting..." : "Delete Permanently"}
+        destructive
+        onConfirm={handleLevelDeleteRoom}
+      />
     </div>
   );
 }

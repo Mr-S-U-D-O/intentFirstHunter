@@ -249,6 +249,24 @@ export function ClientPortal() {
     }
   };
 
+  const handleDeleteMessage = async (msgId: string) => {
+    try {
+      await fetch(`/api/portal/${token}/chat/messages/${msgId}`, { method: 'DELETE' });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!window.confirm('Are you sure you want to delete this entire chat? This will remove all messages from both ends.')) return;
+    try {
+      await fetch(`/api/portal/${token}/chat`, { method: 'DELETE' });
+      setChatOpen(false);
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+    }
+  };
+
   const handleClickLead = async (leadId: string, postUrl: string) => {
     // Track the click server-side
     fetch(`/api/portal/${token}/click/${leadId}`, { method: 'POST' }).catch(() => {});
@@ -1045,12 +1063,21 @@ export function ClientPortal() {
                 <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-1">Usually replies instantly</p>
               </div>
             </div>
-            <button 
-              onClick={() => setChatOpen(false)}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={handleDeleteChat}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                title="Delete Chat History"
+              >
+                <Trash2 size={14} />
+              </button>
+              <button 
+                onClick={() => setChatOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
           
           {/* Messages Area */}
@@ -1065,9 +1092,9 @@ export function ClientPortal() {
             {messages.map((msg) => {
               const isClient = msg.sender === 'client';
               return (
-                <div key={msg.id} className={`flex ${isClient ? 'justify-end' : 'justify-start'}`}>
+                <div key={msg.id} className={`flex ${isClient ? 'justify-end' : 'justify-start'} group/msg relative`}>
                   <div 
-                    className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm ${
+                    className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm relative ${
                       isClient 
                         ? 'bg-[#5a8c12] text-white rounded-br-sm' 
                         : 'bg-white text-slate-700 border border-slate-100 shadow-sm rounded-bl-sm'
@@ -1100,6 +1127,14 @@ export function ClientPortal() {
                     >
                       {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </span>
+
+                    {/* Delete Message Button */}
+                    <button 
+                      onClick={() => handleDeleteMessage(msg.id)}
+                      className={`absolute top-1/2 -translate-y-1/2 ${isClient ? '-left-8' : '-right-8'} opacity-0 group-hover/msg:opacity-100 p-1.5 text-slate-300 hover:text-red-400 transition-all`}
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 </div>
               );
