@@ -172,6 +172,7 @@ export function ChatManager() {
   const [sendingMsg, setSendingMsg] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteRoom, setShowDeleteRoom] = useState(false);
+  const [showNewChat, setShowNewChat] = useState(false);
   const [deletingRoom, setDeletingRoom] = useState(false);
   const [deletingMsg, setDeletingMsg] = useState<string | null>(null);
 
