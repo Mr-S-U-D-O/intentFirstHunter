@@ -6,8 +6,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useState, useEffect, useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useAuth } from './AuthProvider';
 
 export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scraper[], onAddMonitor: (initialData?: any) => void, className?: string }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -15,9 +16,9 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
   const [openPlatforms, setOpenPlatforms] = useState<Record<string, boolean>>({});
   const [newMatchesCounts, setNewMatchesCounts] = useState<Record<string, number>>({});
   const [unreadInbox, setUnreadInbox] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const user = auth.currentUser;
     if (!user) return;
 
     const q = query(
@@ -39,11 +40,10 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   // Live unread inbox badge
   useEffect(() => {
-    const user = auth.currentUser;
     if (!user) return;
     const q = query(
       collection(db, 'portal_chats'),
@@ -52,7 +52,7 @@ export function Sidebar({ scrapers, onAddMonitor, className }: { scrapers: Scrap
     );
     const unsub = onSnapshot(q, (snap) => setUnreadInbox(snap.size));
     return () => unsub();
-  }, []);
+  }, [user]);
 
   const groupedScrapers = useMemo(() => {
     return scrapers.reduce((acc, scraper) => {
